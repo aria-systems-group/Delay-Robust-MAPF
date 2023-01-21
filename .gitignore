@@ -4,3 +4,14 @@ bin
 cmake*
 exp*
 debug
+
+# ignore experiment bash scripts, result files, map/scen files, and Mac Finder junk
+*.map
+*.scen
+*.sh
+*.csv
+*.DS_Store
+Makefile
+Results/*
+visTools/*
+lns
