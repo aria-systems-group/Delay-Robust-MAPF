@@ -6,9 +6,9 @@
 class MDDNode
 {
 public:
-	MDDNode(int currloc, MDDNode* parent)
+	MDDNode(Location currloc, MDDNode* parent)
 	{
-		location = currloc; 
+		loc = currloc; 
 		if(parent == nullptr)
 			level = 0;
 		else
@@ -17,16 +17,15 @@ public:
 			parents.push_back(parent);
 		}
 	}
-	MDDNode(int location, int t): location(location), level(t) {}
-	int location;
+	MDDNode(Location location, int t): loc(location), level(t) {}
+	Location loc;
 	int level;
-  int cost; // minimum cost of path traversing this MDD node
+	int cost; // minimum cost of path traversing this MDD node
 
 	bool operator == (const MDDNode & node) const
 	{
-		return (this->location == node.location) && (this->level == node.level);
+		return (this->loc.location == node.loc.location) && (this->level == node.level);
 	}
-
 
 	list<MDDNode*> children;
 	list<MDDNode*> parents;

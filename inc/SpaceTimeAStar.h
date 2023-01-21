@@ -13,8 +13,8 @@ public:
 
 	AStarNode() : LLNode() {}
     AStarNode(const AStarNode& other) : LLNode(other) {} // copy everything except for handles
-	AStarNode(int loc, int g_val, int h_val, LLNode* parent, int timestep, int num_of_conflicts) :
-		LLNode(loc, g_val, h_val, parent, timestep, num_of_conflicts) {}
+	AStarNode(Location Loc, int g_val, int h_val, LLNode* parent, int timestep, int num_of_conflicts) :
+		LLNode(Loc, g_val, h_val, parent, timestep, num_of_conflicts) {}
 
 
 	~AStarNode() {}
@@ -24,7 +24,7 @@ public:
 	{
 		size_t operator()(const AStarNode* n) const
 		{
-			size_t loc_hash = std::hash<int>()(n->location);
+			size_t loc_hash = std::hash<int>()((n->Loc).location);
 			size_t timestep_hash = std::hash<int>()(n->timestep);
 			return (loc_hash ^ (timestep_hash << 1));
 		}
@@ -38,7 +38,8 @@ public:
 		bool operator()(const AStarNode* s1, const AStarNode* s2) const
 		{
 			return (s1 == s2) || (s1 && s2 &&
-                        s1->location == s2->location &&
+                        (s1->Loc).location == (s2->Loc).location &&
+                        (s1->Loc).index == (s2->Loc).index &&
                         s1->timestep == s2->timestep &&
 						s1->wait_at_goal == s2->wait_at_goal &&
 						s1->is_goal == s2->is_goal);
@@ -74,8 +75,11 @@ public:
 
 	string getName() const { return "AStar"; }
 
-	SpaceTimeAStar(const Instance& instance, int agent):
+	SpaceTimeAStar(Instance *instance, int agent):
 		SingleAgentSolver(instance, agent) {}
+
+	SpaceTimeAStar(Instance *instance, int agent, Path &path):
+		SingleAgentSolver(instance, agent, path) {}
 
 private:
 	// define typedefs and handles for heap

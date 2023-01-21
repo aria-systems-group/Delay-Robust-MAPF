@@ -1,11 +1,12 @@
 ﻿#pragma once
 #include "Instance.h"
+#include "DelayInstance.h"
 #include "ConstraintTable.h"
 
 class LLNode // low-level node
 {
 public:
-	int location = 0;
+	Location Loc{};
 	int g_val = 0;
 	int h_val = 0;
 	LLNode* parent = nullptr;
@@ -55,14 +56,14 @@ public:
 
 
 	LLNode() {}
-	LLNode(int location, int g_val, int h_val, LLNode* parent, int timestep, int num_of_conflicts) :
-		location(location), g_val(g_val), h_val(h_val), parent(parent), timestep(timestep),
+	LLNode(Location location, int g_val, int h_val, LLNode* parent, int timestep, int num_of_conflicts) :
+		Loc(location), g_val(g_val), h_val(h_val), parent(parent), timestep(timestep),
 		num_of_conflicts(num_of_conflicts) {}
 	LLNode(const LLNode& other) { copy(other); }
 
 	void copy(const LLNode& other)
 	{
-		location = other.location;
+		Loc = other.Loc;
 		g_val = other.g_val;
 		h_val = other.h_val;
 		parent = other.parent;
@@ -88,14 +89,14 @@ public:
 	double runtime_build_CT = 0; // runtimr of building constraint table
 	double runtime_build_CAT = 0; // runtime of building conflict avoidance table
 
-	int start_location;
-	int goal_location;
+	Location start_location;
+	Location goal_location;
 	vector<int> my_heuristic;  // this is the precomputed heuristic for this agent
 	int compute_heuristic(int from, int to) const  // compute admissible heuristic between two locations
 	{
-		return max(get_DH_heuristic(from, to), instance.getManhattanDistance(from, to));
+		return max(get_DH_heuristic(from, to), (*instance).getManhattanDistance(from, to));
 	}
-	const Instance& instance;
+	Instance *instance;
 
     //virtual Path findOptimalPath(const PathTable& path_table) = 0;
     //virtual Path findOptimalPath(const ConstraintTable& constraint_table, const PathTableWC& path_table) = 0;
@@ -108,19 +109,34 @@ public:
     virtual int getTravelTime(int start, int end, const ConstraintTable& constraint_table, int upper_bound) = 0;
 	virtual string getName() const = 0;
 
-	list<int> getNextLocations(int curr) const; // including itself and its neighbors
-	list<int> getNeighbors(int curr) const { return instance.getNeighbors(curr); }
+	list<Location> getNextLocations(Location curr) const; // including itself and its neighbors
+	list<Location> getNeighbors(Location curr) const 
+	{ 
+		return instance->getNeighbors(curr); 
+	}
     uint64_t getNumExpanded() const { return num_expanded; }
 	// int getStartLocation() const {return instance.start_locations[agent]; }
 	// int getGoalLocation() const {return instance.goal_locations[agent]; }
 
-	SingleAgentSolver(const Instance& instance, int agent) :
-		instance(instance), //agent(agent), 
-		start_location(instance.start_locations[agent]),
-		goal_location(instance.goal_locations[agent])
+	SingleAgentSolver(Instance *instance, int agent) :
+		instance(instance), agent(agent), 
+		start_location((*instance).start_locations[agent]),
+		goal_location((*instance).goal_locations[agent])
 	{
 		compute_heuristics();
 	}
+
+	SingleAgentSolver(Instance *instance, int agent, Path &path) :
+		instance(instance), agent(agent), 
+		start_location((*instance).start_locations[agent].location, (*instance).start_locations[agent].index),
+		goal_location((*instance).goal_locations[agent])
+	{
+		// std::cout << "in init: " << start_location.location << " " << start_location.index << std::endl;
+		instance->agent_idx = agent; // only used by DelayInstance
+		compute_postDelay_heuristics(path);
+	}
+
+	const int agent;
 	virtual ~SingleAgentSolver(){}
     void reset()
     {
@@ -134,6 +150,7 @@ public:
         num_expanded = 0;
         num_generated = 0;
         num_reopened = 0;
+        instance->agent_idx = agent;
     }
 protected:
     uint64_t num_expanded = 0;
@@ -144,6 +161,7 @@ protected:
 	double w = 1; // suboptimal bound
 
 	void compute_heuristics();
+	void compute_postDelay_heuristics(Path &path);
 	int get_DH_heuristic(int from, int to) const { return abs(my_heuristic[from] - my_heuristic[to]); }
 };
 

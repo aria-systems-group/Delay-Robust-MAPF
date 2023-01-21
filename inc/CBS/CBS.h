@@ -44,6 +44,7 @@ public:
 	bool solution_found = false;
 	int solution_cost = -2;
 	vector<Path*> paths;
+	Instance* instance_;
 
 	/////////////////////////////////////////////////////////////////////////////////////////
 	// set params
@@ -77,7 +78,7 @@ public:
     CBSNode* getGoalNode() { return goal_node; }
     void updatePaths(CBSNode* curr);
 
-	CBS(const Instance& instance, bool sipp, int screen);
+	CBS(Instance *instance, bool sipp, int screen);
     CBS(vector<SingleAgentSolver*>& search_engines, int screen, const PathTable* path_table);
 	CBS(vector<SingleAgentSolver*>& search_engines,
 		const vector<ConstraintTable>& constraints,
@@ -85,6 +86,11 @@ public:
     SingleAgentSolver* getSearchEngine(int i) { return search_engines[i]; }
 	void clearSearchEngines();
 	~CBS();
+
+	// match lns names
+	void writePathsToFile(const string & file_name) const;
+	void countInducedDelays(std::vector<Path> &old_paths) const;
+	bool validateSolution() const;
 
 	// Save results
 	void saveResults(const string &fileName, const string &instanceName) const;
@@ -94,6 +100,7 @@ public:
 	void clear(); // used for rapid random  restart
 
 	int getInitialPathLength(int agent) const {return (int) paths_found_initially[agent].size() - 1; }
+
 protected:
     bool rectangle_reasoning;  // using rectangle reasoning
 	bool corridor_reasoning;  // using corridor reasoning
@@ -154,7 +161,7 @@ protected:
 	void printResults() const;
 	static void printConflicts(const HLNode &curr) ;
 
-	bool validateSolution() const;
+	
 	inline int getAgentLocation(int agent_id, size_t timestep) const;
 
 	vector<int> shuffleAgents() const;  //generate random permuattion of agent indices

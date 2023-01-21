@@ -54,10 +54,10 @@ void GCBS::findConflicts(GCBSNode& curr, int a1, int a2)
     {
         int a1_ = paths[a1]->size() < paths[a2]->size() ? a1 : a2;
         int a2_ = paths[a1]->size() < paths[a2]->size() ? a2 : a1;
-        int loc1 = paths[a1_]->back().location;
+        int loc1 = paths[a1_]->back().Loc.location;
         for (int timestep = min_path_length; timestep < (int)paths[a2_]->size(); timestep++)
         {
-            int loc2 = paths[a2_]->at(timestep).location;
+            int loc2 = paths[a2_]->at(timestep).Loc.location;
             if (loc1 == loc2)
             {
                 shared_ptr<Conflict> conflict(new Conflict());
@@ -74,8 +74,8 @@ void GCBS::findConflicts(GCBSNode& curr, int a1, int a2)
     }
     for (int timestep = 0; timestep < min_path_length; timestep++)
     {
-        int loc1 = paths[a1]->at(timestep).location;
-        int loc2 = paths[a2]->at(timestep).location;
+        int loc1 = paths[a1]->at(timestep).Loc.location;
+        int loc2 = paths[a2]->at(timestep).Loc.location;
         if (loc1 == loc2)
         {
             shared_ptr<Conflict> conflict(new Conflict());
@@ -97,8 +97,8 @@ void GCBS::findConflicts(GCBSNode& curr, int a1, int a2)
             return;
         }
         else if (timestep < min_path_length - 1
-                 && loc1 == paths[a2]->at(timestep + 1).location
-                 && loc2 == paths[a1]->at(timestep + 1).location)
+                 && loc1 == paths[a2]->at(timestep + 1).Loc.location
+                 && loc2 == paths[a1]->at(timestep + 1).Loc.location)
         {
             shared_ptr<Conflict> conflict(new Conflict());
             conflict->edgeConflict(a1, a2, loc1, loc2, timestep + 1);
@@ -178,8 +178,8 @@ bool GCBS::findPathForSingleAgent(GCBSNode* node, int agent)
 {
     // build constraint table
     auto t = clock();
-    ConstraintTable constraint_table(search_engines[agent]->instance.num_of_cols,
-                    search_engines[agent]->instance.map_size, &path_tables->at(agent));
+    ConstraintTable constraint_table(search_engines[agent]->instance->num_of_cols,
+                    search_engines[agent]->instance->map_size, &path_tables->at(agent));
     auto curr = node;
     while (curr->parent != nullptr)
     {
@@ -291,7 +291,7 @@ set<int> GCBS::getInvalidAgents(const list<Constraint>& constraints)  // return 
                 continue;
             for (int i = t; i < (int)paths[ag]->size(); i++)
             {
-                if (paths[ag]->at(i).location == x)
+                if (paths[ag]->at(i).Loc.location == x)
                 {
                     agents.insert(ag);
                     break;
@@ -343,7 +343,7 @@ void GCBS::printPaths() const
     {
         cout << "Agent " << i << " (" << paths[i]->size() - 1 << "): ";
         for (const auto & t : *paths[i])
-            cout << t.location << "->";
+            cout << t.Loc.location << "->";
         cout << endl;
     }
 }
@@ -680,8 +680,8 @@ bool GCBS::validateSolution() const
             size_t min_path_length = paths[a1]->size() < paths[a2]->size() ? paths[a1]->size() : paths[a2]->size();
             for (size_t timestep = 0; timestep < min_path_length; timestep++)
             {
-                int loc1 = paths[a1]->at(timestep).location;
-                int loc2 = paths[a2]->at(timestep).location;
+                int loc1 = paths[a1]->at(timestep).Loc.location;
+                int loc2 = paths[a2]->at(timestep).Loc.location;
                 if (loc1 == loc2)
                 {
                     if (best_node->colliding_pairs == 0)
@@ -690,8 +690,8 @@ bool GCBS::validateSolution() const
                     break;
                 }
                 else if (timestep < min_path_length - 1
-                         && loc1 == paths[a2]->at(timestep + 1).location
-                         && loc2 == paths[a1]->at(timestep + 1).location)
+                         && loc1 == paths[a2]->at(timestep + 1).Loc.location
+                         && loc2 == paths[a1]->at(timestep + 1).Loc.location)
                 {
                     if (best_node->colliding_pairs == 0)
                         cout << "Agents " << a1 << " and " << a2 << " collides at (" <<
@@ -704,10 +704,10 @@ bool GCBS::validateSolution() const
             {
                 int a1_ = paths[a1]->size() < paths[a2]->size() ? a1 : a2;
                 int a2_ = paths[a1]->size() < paths[a2]->size() ? a2 : a1;
-                int loc1 = paths[a1_]->back().location;
+                int loc1 = paths[a1_]->back().Loc.location;
                 for (size_t timestep = min_path_length; timestep < paths[a2_]->size(); timestep++)
                 {
-                    int loc2 = paths[a2_]->at(timestep).location;
+                    int loc2 = paths[a2_]->at(timestep).Loc.location;
                     if (loc1 == loc2)
                     {
                         if (best_node->colliding_pairs == 0)
@@ -735,7 +735,7 @@ bool GCBS::validateSolution() const
 inline int GCBS::getAgentLocation(int agent_id, size_t timestep) const
 {
     size_t t = max(min(timestep, paths[agent_id]->size() - 1), (size_t)0);
-    return paths[agent_id]->at(t).location;
+    return paths[agent_id]->at(t).Loc.location;
 }
 
 

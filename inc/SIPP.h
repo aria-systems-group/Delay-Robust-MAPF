@@ -15,7 +15,7 @@ public:
     int high_expansion; // the upper bound with respect to expansion
 	bool collision_v;
     SIPPNode() : LLNode() {}
-	SIPPNode(int loc, int g_val, int h_val, SIPPNode* parent, int timestep, int high_generation, int high_expansion,
+	SIPPNode(Location loc, int g_val, int h_val, SIPPNode* parent, int timestep, int high_generation, int high_expansion,
 	        bool collision_v, int num_of_conflicts) :
             LLNode(loc, g_val, h_val, parent, timestep, num_of_conflicts), high_generation(high_generation),
             high_expansion(high_expansion), collision_v(collision_v) {}
@@ -36,7 +36,7 @@ public:
 		std::size_t operator()(const SIPPNode* n) const
 		{
             size_t seed = 0;
-            boost::hash_combine(seed, n->location);
+            boost::hash_combine(seed, (n->Loc).location);
             boost::hash_combine(seed, n->high_generation);
             return seed;
 		}
@@ -50,7 +50,7 @@ public:
 		bool operator()(const SIPPNode* n1, const SIPPNode* n2) const
 		{
 			return (n1 == n2) ||
-			            (n1 && n2 && n1->location == n2->location &&
+			            (n1 && n2 && n1->Loc == n2->Loc &&
 				        n1->wait_at_goal == n2->wait_at_goal &&
 				        n1->is_goal == n2->is_goal &&
                          n1->high_generation == n2->high_generation);
@@ -79,8 +79,11 @@ public:
 
 	string getName() const { return "SIPP"; }
 
-	SIPP(const Instance& instance, int agent):
+	SIPP(Instance *instance, int agent):
 		SingleAgentSolver(instance, agent) {}
+
+	SIPP(Instance *instance, int agent, Path &path):
+		SingleAgentSolver(instance, agent, path) {}
 
 private:
 	// define typedefs and handles for heap

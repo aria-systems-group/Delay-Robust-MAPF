@@ -176,7 +176,8 @@ void ReservationTable::updateSIT(int location)
 {
     assert(sit[location].empty());
     // length constraints for the goal location
-    if (location == goal_location) // we need to divide the same intervals into 2 parts [0, length_min) and [length_min, length_max + 1)
+    // we need to divide the same intervals into 2 parts [0, length_min) and [length_min, length_max + 1)
+    if (location == goal_location)
     {
         if (constraint_table.length_min > constraint_table.length_max) // the location is blocked for the entire time horizon
         {

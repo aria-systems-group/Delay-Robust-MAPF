@@ -26,45 +26,45 @@ int CorridorReasoning::findCorridor(const shared_ptr<Conflict>& conflict,
 		return 0;
 	if (loc1 < 0) // vertex conflcit
 	{
-		if (search_engines[0]->instance.getDegree(loc2) != 2)
+		if (search_engines[0]->instance->getDegree(loc2) != 2)
 			return 0; // not a corridor 
 		loc1 = loc2;
 	}
 	else // edge conflict
 	{
-		if (search_engines[0]->instance.getDegree(loc1) != 2 && search_engines[0]->instance.getDegree(loc2) != 2)
+		if (search_engines[0]->instance->getDegree(loc1) != 2 && search_engines[0]->instance->getDegree(loc2) != 2)
 			return 0; // not a corridor 	
 	}
 
 	endpoints_time[0] = getExitingTime(*paths[conflict->a1], t); ; // the first timestep when agent 1 exits the corridor 
 	endpoints_time[1] = getExitingTime(*paths[conflict->a2], t); ; // the first timestep when agent 2 exits the corridor 
-	endpoints[0] = paths[conflict->a1]->at(endpoints_time[0]).location; // the exit location for agent 1
-	endpoints[1] = paths[conflict->a2]->at(endpoints_time[1]).location; // the exit location for agent 2
+	endpoints[0] = paths[conflict->a1]->at(endpoints_time[0]).Loc.location; // the exit location for agent 1
+	endpoints[1] = paths[conflict->a2]->at(endpoints_time[1]).Loc.location; // the exit location for agent 2
 	if (endpoints[0] == endpoints[1]) // agents exit the corridor in the same direction
 		return 0;
 	// count the distance between the two endpoints, and
 	// check whether the corridor between the two exit locations traverse the conflict location, 
 	// which indicates whether the two agents come in different directions
 	int prev = endpoints[0];
-	int curr = paths[conflict->a1]->at(endpoints_time[0] - 1).location;
+	Location curr = paths[conflict->a1]->at(endpoints_time[0] - 1).Loc;
 	bool traverseTheConflictingLocation = false;
 	int corridor_length = 1;
-	while (curr != endpoints[1])
+	while (curr.location != endpoints[1])
 	{
-		if (curr == loc2)
+		if (curr.location == loc2)
 			traverseTheConflictingLocation = true;
-		auto neighbors = search_engines[0]->instance.getNeighbors(curr);
+		auto neighbors = search_engines[0]->instance->getNeighbors(curr);
 		if (neighbors.size() == 2) // inside the corridor
 		{
-			if (neighbors.front() == prev)
+			if (neighbors.front().location == prev)
 			{
-				prev = curr;
+				prev = curr.location;
 				curr = neighbors.back();
 			}
 			else
 			{
-				assert(neighbors.back() == prev);
-				prev = curr;
+				assert(neighbors.back().location == prev);
+				prev = curr.location;
 				curr = neighbors.front();
 			}
 		}
@@ -79,8 +79,8 @@ int CorridorReasoning::findCorridor(const shared_ptr<Conflict>& conflict,
 		return 0;
 	// When k=2, it might just be a corner cell, which we do not want to recognize as a corridor
 	if (corridor_length == 2 &&
-		search_engines[0]->instance.getColCoordinate(endpoints[0]) != search_engines[0]->instance.getColCoordinate(endpoints[1]) &&
-		search_engines[0]->instance.getRowCoordinate(endpoints[0]) != search_engines[0]->instance.getRowCoordinate(endpoints[1]))
+		search_engines[0]->instance->getColCoordinate(endpoints[0]) != search_engines[0]->instance->getColCoordinate(endpoints[1]) &&
+		search_engines[0]->instance->getRowCoordinate(endpoints[0]) != search_engines[0]->instance->getRowCoordinate(endpoints[1]))
 	{
 		return 0;
 	}
@@ -96,13 +96,13 @@ shared_ptr<Conflict> CorridorReasoning::findCorridorConflict(const shared_ptr<Co
 	constraint_type type;
 	tie(agent, loc1, loc2, timestep, type) = conflict->constraint1.back();
 	int curr = -1;
-	if (search_engines[0]->instance.getDegree(loc1) == 2)
+	if (search_engines[0]->instance->getDegree(loc1) == 2)
 	{
 		curr = loc1;
 		if (loc2 >= 0)
 			timestep--;
 	}
-	else if (loc2 >= 0 && search_engines[0]->instance.getDegree(loc2) == 2)
+	else if (loc2 >= 0 && search_engines[0]->instance->getDegree(loc2) == 2)
 		curr = loc2;
 	if (curr <= 0)
 		return nullptr;
@@ -117,7 +117,7 @@ shared_ptr<Conflict> CorridorReasoning::findCorridorConflict(const shared_ptr<Co
 	}
 	int u[2];
 	for (int i = 0; i < 2; i++)
-		u[i] = paths[a[i]]->at(t[i]).location;
+		u[i] = paths[a[i]]->at(t[i]).Loc.location;
 	if (u[0] == u[1])
 		return nullptr;
 	for (int i = 0; i < 2; i++)
@@ -125,7 +125,7 @@ shared_ptr<Conflict> CorridorReasoning::findCorridorConflict(const shared_ptr<Co
 		bool found = false;
 		for (int time = t[i]; time < (int)paths[a[i]]->size() && !found; time++)
 		{
-			if (paths[a[i]]->at(time).location == u[1 - i])
+			if (paths[a[i]]->at(time).Loc.location == u[1 - i])
 				found = true;
 		}
 		if (!found)
@@ -136,16 +136,16 @@ shared_ptr<Conflict> CorridorReasoning::findCorridorConflict(const shared_ptr<Co
 	int t3, t3_, t4, t4_;
 	ConstraintTable ct1(initial_constraints[conflict->a1]);
     ct1.insert2CT(node, conflict->a1);
-	t3 = search_engines[conflict->a1]->getTravelTime(paths[conflict->a1]->front().location, u[1], ct1, MAX_TIMESTEP);
+	t3 = search_engines[conflict->a1]->getTravelTime(paths[conflict->a1]->front().Loc.location, u[1], ct1, MAX_TIMESTEP);
 	ct1.insert2CT(edge.first, edge.second, 0, MAX_TIMESTEP); // block the corridor in both directions
 	ct1.insert2CT(edge.second, edge.first, 0, MAX_TIMESTEP);
-	t3_ = search_engines[conflict->a1]->getTravelTime(paths[conflict->a1]->front().location, u[1], ct1, t3 + 2 * corridor_length + 1);
+	t3_ = search_engines[conflict->a1]->getTravelTime(paths[conflict->a1]->front().Loc.location, u[1], ct1, t3 + 2 * corridor_length + 1);
 	ConstraintTable ct2(initial_constraints[conflict->a2]);
     ct2.insert2CT(node, conflict->a2);
-	t4 = search_engines[conflict->a2]->getTravelTime(paths[conflict->a2]->front().location, u[0], ct2, MAX_TIMESTEP);
+	t4 = search_engines[conflict->a2]->getTravelTime(paths[conflict->a2]->front().Loc.location, u[0], ct2, MAX_TIMESTEP);
 	ct2.insert2CT(edge.first, edge.second, 0, MAX_TIMESTEP); // block the corridor in both directions
 	ct2.insert2CT(edge.second, edge.first, 0, MAX_TIMESTEP);
-	t4_ = search_engines[conflict->a2]->getTravelTime(paths[conflict->a2]->front().location, u[0], ct2, t3 + corridor_length + 1);
+	t4_ = search_engines[conflict->a2]->getTravelTime(paths[conflict->a2]->front().Loc.location, u[0], ct2, t3 + corridor_length + 1);
 
     if (abs(t3 - t4) <= corridor_length && t3_ > t3 && t4_ > t4)
     {
@@ -165,12 +165,12 @@ int CorridorReasoning::getExitingTime(const std::vector<PathEntry>& path, int t)
 {
 	if (t >= (int)path.size())
 		t = (int)path.size() - 1;
-	int loc = path[t].location;
-	while (loc != path.back().location &&
-		search_engines[0]->instance.getDegree(loc) == 2)
+	int loc = path[t].Loc.location;
+	while (loc != path.back().Loc.location &&
+		search_engines[0]->instance->getDegree(loc) == 2)
 	{
 		t++;
-		loc = path[t].location;
+		loc = path[t].Loc.location;
 	}
 	return t;
 }
@@ -180,12 +180,12 @@ int CorridorReasoning::getEnteringTime(const vector<PathEntry>& path, const vect
 {
 	if (t >= (int)path.size())
 		t = (int)path.size() - 1;
-	int loc = path[t].location;
-	while (loc != path.front().location && loc != path2.back().location &&
-		search_engines[0]->instance.getDegree(loc) == 2)
+	int loc = path[t].Loc.location;
+	while (loc != path.front().Loc.location && loc != path2.back().Loc.location &&
+		search_engines[0]->instance->getDegree(loc) == 2)
 	{
 		t--;
-		loc = path[t].location;
+		loc = path[t].Loc.location;
 	}
 	return t;
 }
@@ -194,7 +194,7 @@ int CorridorReasoning::getEnteringTime(const vector<PathEntry>& path, const vect
 
 int CorridorReasoning::getCorridorLength(const vector<PathEntry>& path, int t_start, int loc_end, pair<int, int>& edge)
 {
-	int curr = path[t_start].location;
+	int curr = path[t_start].Loc.location;
 	int next;
 	int prev = -1;
 	int length = 0; // distance to the start location
@@ -204,7 +204,7 @@ int CorridorReasoning::getCorridorLength(const vector<PathEntry>& path, int t_st
 	while (curr != loc_end)
 	{
 		t++;
-		next = path[t].location;
+		next = path[t].Loc.location;
 		if (next == curr) // wait
 			continue;
 		else if (next == prev) // turn aournd
@@ -442,9 +442,9 @@ bool CorridorReasoning::blocked(const Path& path, const Constraint& constraint)
 	assert(type == constraint_type::RANGE);
 	for (int t = t1; t < t2; t++)
 	{
-		if (t >= (int)path.size() && loc == path.back().location)
+		if (t >= (int)path.size() && loc == path.back().Loc.location)
 			return true;
-		else if (t >= 0 && path[t].location == loc)
+		else if (t >= 0 && path[t].Loc.location == loc)
 			return true;
 	}
 	return false;

@@ -12,7 +12,7 @@ public:
     int sum_of_costs = MAX_COST;
     int sum_of_costs_lowerbound = 0;
     int sum_of_distances = -1;
-    AnytimeEECBS(const Instance& instance, double time_limit, int screen) :
+    AnytimeEECBS(Instance *instance, double time_limit, int screen) :
             instance(instance), time_limit(time_limit), screen(screen) {}
 
     void run();
@@ -23,7 +23,7 @@ public:
 
 private:
     // intput params
-    const Instance& instance; // avoid making copies of this variable as much as possible
+    Instance *instance; // avoid making copies of this variable as much as possible
     double time_limit;
     int screen;
 };

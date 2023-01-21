@@ -143,11 +143,11 @@ void ConstraintTable::insert2CT(const list<Constraint>& constraints, int agent)
 }
 void ConstraintTable::insert2CT(const Path& path)
 {
-    int prev_location = path.front().location;
+    int prev_location = path.front().Loc.location;
     int prev_timestep = 0;
     for (int timestep = 0; timestep < (int) path.size(); timestep++)
     {
-        auto curr_location = path[timestep].location;
+        auto curr_location = path[timestep].Loc.location;
         if (prev_location != curr_location)
         {
             insert2CT(prev_location, prev_timestep, timestep); // add vertex conflict
@@ -156,7 +156,7 @@ void ConstraintTable::insert2CT(const Path& path)
             prev_timestep = timestep;
         }
     }
-    insert2CT(path.back().location, (int) path.size() - 1, MAX_TIMESTEP);
+    insert2CT(path.back().Loc.location, (int) path.size() - 1, MAX_TIMESTEP);
 }
 
 void ConstraintTable::insertLandmark(size_t loc, int t)
@@ -188,10 +188,10 @@ void ConstraintTable::insert2CAT(const Path& path)
         cat_goals.resize(map_size, MAX_TIMESTEP);
     }
     assert(cat_goals[path.back().location] == MAX_TIMESTEP);
-    cat_goals[path.back().location] = path.size() - 1;
+    cat_goals[path.back().Loc.location] = path.size() - 1;
     for (auto timestep = (int)path.size() - 1; timestep >= 0; timestep--)
     {
-        int loc = path[timestep].location;
+        int loc = path[timestep].Loc.location;
         if (cat[loc].size() <= timestep)
             cat[loc].resize(timestep + 1, false);
         cat[loc][timestep] = true;

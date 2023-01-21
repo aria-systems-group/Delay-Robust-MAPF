@@ -213,8 +213,8 @@ bool PBS::planPath(int agent, PBSNode& node, const set<int> & higher_agents, con
         cout << "\t\tReplan path for agent " << agent << " by avoiding collisions with agents ";
     // build constraint table
     auto t = clock();
-    ConstraintTable constraint_table(search_engines[agent]->instance.num_of_cols,
-                                     search_engines[agent]->instance.map_size,nullptr, &path_table);
+    ConstraintTable constraint_table(search_engines[agent]->instance->num_of_cols,
+                                     search_engines[agent]->instance->map_size,nullptr, &path_table);
     for ( auto a : higher_agents)
     {
         if (a < 0) // external agent
@@ -375,10 +375,10 @@ bool PBS::findInternalConflicts(PBSNode& node, int a1, int a2) const
     {
         int a1_ = paths[a1]->size() < paths[a2]->size() ? a1 : a2;
         int a2_ = paths[a1]->size() < paths[a2]->size() ? a2 : a1;
-        int loc1 = paths[a1_]->back().location;
+        int loc1 = paths[a1_]->back().Loc.location;
         for (int timestep = min_path_length; timestep < (int)paths[a2_]->size(); timestep++)
         {
-            if (loc1 == paths[a2_]->at(timestep).location)
+            if (loc1 == paths[a2_]->at(timestep).Loc.location)
             {
                 node.conflicts.emplace_front(a1_, a2_, true);
                 return true;
@@ -387,10 +387,10 @@ bool PBS::findInternalConflicts(PBSNode& node, int a1, int a2) const
     }
     for (int timestep = 0; timestep < min_path_length; timestep++)
     {
-        int loc1 = paths[a1]->at(timestep).location;
-        int loc2 = paths[a2]->at(timestep).location;
+        int loc1 = paths[a1]->at(timestep).Loc.location;
+        int loc2 = paths[a2]->at(timestep).Loc.location;
         if (loc1 == loc2  or // vertex
-            (loc1 == paths[a2]->at(timestep + 1).location and loc2 == paths[a1]->at(timestep + 1).location)) // edge
+            (loc1 == paths[a2]->at(timestep + 1).Loc.location and loc2 == paths[a1]->at(timestep + 1).Loc.location)) // edge
         {
             node.conflicts.emplace_back(a1, a2, true);
             return true;
@@ -404,12 +404,12 @@ bool PBS::findExternalConflicts(PBSNode& node, int a, const set<int> & lower_age
         return false;
     assert(paths[a] != nullptr and !paths[a]->empty());
     set<int> collisions;
-    assert(path_table.table[paths[a]->front().location].empty() or
-        path_table.table[paths[a]->front().location][0].empty());
+    assert(path_table.table[paths[a]->front().Loc.location].empty() or
+        path_table.table[paths[a]->front().Loc.location][0].empty());
     for (int timestep = 1; timestep < (int) paths[a]->size(); timestep++)
     {
-        auto from = paths[a]->at(timestep - 1).location;
-        auto to = paths[a]->at(timestep).location;
+        auto from = paths[a]->at(timestep - 1).Loc.location;
+        auto to = paths[a]->at(timestep).Loc.location;
         if ((int)path_table.table[to].size() > timestep) // vertex conflict
         {
             collisions.insert(path_table.table[to][timestep].begin(), path_table.table[to][timestep].end());
@@ -429,7 +429,7 @@ bool PBS::findExternalConflicts(PBSNode& node, int a, const set<int> & lower_age
         if (a2 >= 0) // target conflict - this agent traverses the target of another agent
             collisions.insert(a2);
     }
-    auto goal = paths[a]->back().location; // target conflicts - some other agent traverses the target of this agent
+    auto goal = paths[a]->back().Loc.location; // target conflicts - some other agent traverses the target of this agent
     for (int t = (int)paths[a]->size(); t < path_table.table[goal].size(); t++)
     {
         collisions.insert(path_table.table[goal][t].begin(), path_table.table[goal][t].end());

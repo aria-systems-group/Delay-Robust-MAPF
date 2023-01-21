@@ -4,7 +4,7 @@
 
 void AnytimeEECBS::run()
 {
-    int num_of_agents = instance.getDefaultNumberOfAgents();
+    int num_of_agents = instance->getDefaultNumberOfAgents();
     bool improvements = true;
     ECBS ecbs(instance, false, screen);
     ecbs.setPrioritizeConflicts(true);
@@ -22,7 +22,7 @@ void AnytimeEECBS::run()
     sum_of_distances = 0;
     for (int i = 0; i < num_of_agents; i++)
     {
-        sum_of_distances += ecbs.getSearchEngine(i)->my_heuristic[ecbs.getSearchEngine(i)->start_location];
+        sum_of_distances += ecbs.getSearchEngine(i)->my_heuristic[ecbs.getSearchEngine(i)->start_location.location];
     }
 
     // run
@@ -47,7 +47,7 @@ void AnytimeEECBS::run()
             // w = max(1.0, 0.99 * sum_of_costs / sum_of_costs_lowerbound);
             // a better way of computing w should be
             w = 1 + 0.99 * (sum_of_costs * 1.0 / sum_of_costs_lowerbound - 1);
-            iteration_stats.emplace_back(instance.getDefaultNumberOfAgents(), sum_of_costs,
+            iteration_stats.emplace_back(instance->getDefaultNumberOfAgents(), sum_of_costs,
                                          runtime, "EECBS("+ std::to_string(w) + ")", sum_of_costs_lowerbound);
         }
 
@@ -71,7 +71,7 @@ void AnytimeEECBS::validateSolution() const
 {
     if (solution.empty())
         return;
-    int N = instance.getDefaultNumberOfAgents();
+    int N = instance->getDefaultNumberOfAgents();
     for (int i = 0; i < N; i++)
     {
         for (int j = i + 1; j < N; j++)
@@ -81,25 +81,25 @@ void AnytimeEECBS::validateSolution() const
             int t = 1;
             for (; t < (int) solution[a1].size(); t++)
             {
-                if (solution[a1][t].location == solution[a2][t].location) // vertex conflict
+                if (solution[a1][t].Loc.location == solution[a2][t].Loc.location) // vertex conflict
                 {
                     cerr << "Find a vertex conflict between agents " << a1 << " and " << a2 <<
-                         " at location " << solution[a1][t].location << " at timestep " << t << endl;
+                         " at location " << solution[a1][t].Loc.location << " at timestep " << t << endl;
                     exit(-1);
                 }
-                else if (solution[a1][t].location == solution[a2][t - 1].location &&
-                         solution[a1][t - 1].location == solution[a2][t].location) // edge conflict
+                else if (solution[a1][t].Loc.location == solution[a2][t - 1].Loc.location &&
+                         solution[a1][t - 1].Loc.location == solution[a2][t].Loc.location) // edge conflict
                 {
                     cerr << "Find an edge conflict between agents " << a1 << " and " << a2 <<
-                         " at edge (" << solution[a1][t - 1].location << "," << solution[a1][t].location <<
+                         " at edge (" << solution[a1][t - 1].Loc.location << "," << solution[a1][t].Loc.location <<
                          ") at timestep " << t << endl;
                     exit(-1);
                 }
             }
-            int target = solution[a1].back().location;
+            int target = solution[a1].back().Loc.location;
             for (; t < (int) solution[a2].size(); t++)
             {
-                if (solution[a2][t].location == target)  // target conflict
+                if (solution[a2][t].Loc.location == target)  // target conflict
                 {
                     cerr << "Find a target conflict where agent " << a2 << " traverses agent " << a1 <<
                          "'s target location " << target << " at timestep " << t << endl;
@@ -164,7 +164,7 @@ void AnytimeEECBS::writeResultToFile(string file_name) const
     stats << runtime << "," << sum_of_costs << "," << iteration_stats.front().sum_of_costs << "," <<
           sum_of_costs_lowerbound << "," << sum_of_distances << "," <<
           iteration_stats.size() << "," << iteration_stats.front().runtime << "," << auc << "," <<
-          preprocessing_time << "," << getSolverName() << "," << instance.getInstanceName() << endl;
+          preprocessing_time << "," << getSolverName() << "," << instance->getInstanceName() << endl;
     stats.close();
 }
 

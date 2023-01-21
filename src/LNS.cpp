@@ -2,13 +2,13 @@
 #include "ECBS.h"
 #include <queue>
 
-LNS::LNS(const Instance& instance, double time_limit, const string & init_algo_name, const string & replan_algo_name,
+LNS::LNS(Instance *instance, double time_limit, const string & init_algo_name, const string & replan_algo_name,
          const string & destory_name, int neighbor_size, int num_of_iterations, bool use_init_lns,
          const string & init_destory_name, bool use_sipp, int screen, PIBTPPS_option pipp_option) :
          BasicLNS(instance, time_limit, neighbor_size, screen),
          init_algo_name(init_algo_name),  replan_algo_name(replan_algo_name), num_of_iterations(num_of_iterations),
          use_init_lns(use_init_lns),init_destory_name(init_destory_name),
-         path_table(instance.map_size), pipp_option(pipp_option)
+         path_table((*instance).map_size), pipp_option(pipp_option)
 {
     start_time = Time::now();
     replan_time_limit = time_limit / 100;
@@ -30,11 +30,15 @@ LNS::LNS(const Instance& instance, double time_limit, const string & init_algo_n
         cerr << "Destroy heuristic " << destory_name << " does not exists. " << endl;
         exit(-1);
     }
-
-    int N = instance.getDefaultNumberOfAgents();
+    int N = (*instance).getDefaultNumberOfAgents();
     agents.reserve(N);
     for (int i = 0; i < N; i++)
-        agents.emplace_back(instance, i, use_sipp);
+    {
+        if (!instance->postDelayPlan.empty())
+            agents.emplace_back(instance, i, use_sipp, instance->postDelayPlan[i]);
+        else
+            agents.emplace_back(instance, i, use_sipp);
+    }
     preprocessing_time = ((fsec)(Time::now() - start_time)).count();
     if (screen >= 2)
         cout << "Pre-processing time = " << preprocessing_time << " seconds." << endl;
@@ -46,7 +50,7 @@ bool LNS::run()
     sum_of_distances = 0;
     for (const auto & agent : agents)
     {
-        sum_of_distances += agent.path_planner->my_heuristic[agent.path_planner->start_location];
+        sum_of_distances += agent.path_planner->my_heuristic[agent.path_planner->start_location.location];
     }
 
     initial_solution_runtime = 0;
@@ -95,8 +99,8 @@ bool LNS::run()
     }
     else
     {
-        cout << "Failed to find an initial solution in "
-             << runtime << " seconds after  " << restart_times << " restarts" << endl;
+        std::cout << "Failed to find an initial solution in "
+             << runtime << " seconds after  " << restart_times << " restarts" << std::endl;
         return false; // terminate because no initial solution is found
     }
 
@@ -144,7 +148,7 @@ bool LNS::run()
             path_table.deletePath(neighbor.agents[i], agents[neighbor.agents[i]].path);
             neighbor.old_sum_of_costs += agents[neighbor.agents[i]].path.size() - 1;
         }
-
+        std::cout << "replan_algo_name == " << replan_algo_name << std::endl;
         if (replan_algo_name == "EECBS")
             succ = runEECBS();
         else if (replan_algo_name == "CBS")
@@ -356,7 +360,7 @@ bool LNS::runPP()
     std::random_shuffle(shuffled_agents.begin(), shuffled_agents.end());
     if (screen >= 2) {
         for (auto id : shuffled_agents)
-            cout << id << "(" << agents[id].path_planner->my_heuristic[agents[id].path_planner->start_location] <<
+            cout << id << "(" << agents[id].path_planner->my_heuristic[agents[id].path_planner->start_location.location] <<
                 "->" << agents[id].path.size() - 1 << "), ";
         cout << endl;
     }
@@ -368,7 +372,7 @@ bool LNS::runPP()
     if (!iteration_stats.empty()) // replan
         T = min(T, replan_time_limit);
     auto time = Time::now();
-    ConstraintTable constraint_table(instance.num_of_cols, instance.map_size, &path_table);
+    ConstraintTable constraint_table((*instance).num_of_cols, (*instance).map_size, &path_table);
     while (p != shuffled_agents.end() && ((fsec)(Time::now() - time)).count() < T)
     {
         int id = *p;
@@ -377,7 +381,10 @@ bool LNS::runPP()
                  ", remaining time = " << T - ((fsec)(Time::now() - time)).count() << " seconds. " << endl
                  << "Agent " << agents[id].id << endl;
         agents[id].path = agents[id].path_planner->findPath(constraint_table);
-        if (agents[id].path.empty()) break;
+        if (agents[id].path.empty())
+        {
+            break;
+        }
         neighbor.sum_of_costs += (int)agents[id].path.size() - 1;
         if (neighbor.sum_of_costs >= neighbor.old_sum_of_costs)
             break;
@@ -470,7 +477,7 @@ MAPF LNS::preparePIBTProblem(vector<int>& shuffled_agents){
     auto MT_PG = new std::mt19937(0);
 
 //    Graph* G = new SimpleGrid(instance);
-    Graph* G = new SimpleGrid(instance.getMapFile());
+    Graph* G = new SimpleGrid((*instance).getMapFile());
 
     std::vector<Task*> T;
     PIBT_Agents A;
@@ -478,11 +485,11 @@ MAPF LNS::preparePIBTProblem(vector<int>& shuffled_agents){
     for (int i : shuffled_agents){
         assert(G->existNode(agents[i].path_planner->start_location));
         assert(G->existNode(agents[i].path_planner->goal_location));
-        auto a = new PIBT_Agent(G->getNode( agents[i].path_planner->start_location));
+        auto a = new PIBT_Agent(G->getNode( agents[i].path_planner->start_location.location));
 
 //        PIBT_Agent* a = new PIBT_Agent(G->getNode( agents[i].path_planner.start_location));
         A.push_back(a);
-        Task* tau = new Task(G->getNode( agents[i].path_planner->goal_location));
+        Task* tau = new Task(G->getNode( agents[i].path_planner->goal_location.location));
 
 
         T.push_back(tau);
@@ -511,7 +518,7 @@ void LNS::updatePIBTResult(const PIBT_Agents& A, vector<int>& shuffled_agents){
             //record the last time agent reach the goal from a non-goal vertex.
             if(agents[a_id].path_planner->goal_location == n->v->getId()
                 && n_index - 1>=0
-                && agents[a_id].path_planner->goal_location !=  agents[a_id].path[n_index - 1].location)
+                && agents[a_id].path_planner->goal_location.location !=  agents[a_id].path[n_index - 1].Loc.location)
                 last_goal_visit = n_index;
 
         }
@@ -522,7 +529,7 @@ void LNS::updatePIBTResult(const PIBT_Agents& A, vector<int>& shuffled_agents){
         if(screen>=5){
             cout <<"Agent "<<a_id<<":";
             for (auto loc : agents[a_id].path){
-                cout <<loc.location<<",";
+                cout <<loc.Loc.location<<",";
             }
             cout<<endl;
         }
@@ -549,9 +556,9 @@ bool LNS::generateNeighborByIntersection()
 {
     if (intersections.empty())
     {
-        for (int i = 0; i < instance.map_size; i++)
+        for (int i = 0; i < (*instance).map_size; i++)
         {
-            if (!instance.isObstacle(i) && instance.getDegree(i) > 2)
+            if (!(*instance).isObstacle(i) && (*instance).getDegree(i) > 2)
                 intersections.push_back(i);
         }
     }
@@ -571,15 +578,15 @@ bool LNS::generateNeighborByIntersection()
         {
             int curr = open.front();
             open.pop();
-            for (auto next : instance.getNeighbors(curr))
+            for (auto next : instance->getNeighbors(curr))
             {
-                if (closed.count(next) > 0)
+                if (closed.count(next.location) > 0)
                     continue;
-                open.push(next);
-                closed.insert(next);
-                if (instance.getDegree(next) >= 3)
+                open.push(next.location);
+                closed.insert(next.location);
+                if ((*instance).getDegree(next.location) >= 3)
                 {
-                    path_table.get_agents(neighbors_set, neighbor_size, next);
+                    path_table.get_agents(neighbors_set, neighbor_size, next.location);
                     if ((int) neighbors_set.size() == neighbor_size)
                         break;
                 }
@@ -612,12 +619,12 @@ bool LNS::generateNeighborByRandomWalk()
     
     set<int> neighbors_set;
     neighbors_set.insert(a);
-    randomWalk(a, agents[a].path[0].location, 0, neighbors_set, neighbor_size, (int) agents[a].path.size() - 1);
+    randomWalk(a, agents[a].path[0].Loc.location, 0, neighbors_set, neighbor_size, (int) agents[a].path.size() - 1);
     int count = 0;
     while (neighbors_set.size() < neighbor_size && count < 10)
     {
         int t = rand() % agents[a].path.size();
-        randomWalk(a, agents[a].path[t].location, t, neighbors_set, neighbor_size, (int) agents[a].path.size() - 1);
+        randomWalk(a, agents[a].path[t].Loc.location, t, neighbors_set, neighbor_size, (int) agents[a].path.size() - 1);
         count++;
         // select the next agent randomly
         int idx = rand() % neighbors_set.size();
@@ -637,7 +644,7 @@ bool LNS::generateNeighborByRandomWalk()
     neighbor.agents.assign(neighbors_set.begin(), neighbors_set.end());
     if (screen >= 2)
         cout << "Generate " << neighbor.agents.size() << " neighbors by random walks of agent " << a
-             << "(" << agents[a].path_planner->my_heuristic[agents[a].path_planner->start_location]
+             << "(" << agents[a].path_planner->my_heuristic[agents[a].path_planner->start_location.location]
              << "->" << agents[a].path.size() - 1 << ")" << endl;
 
     return true;
@@ -685,23 +692,23 @@ int LNS::findRandomAgent() const
 }
 
 // a random walk with path that is shorter than upperbound and has conflicting with neighbor_size agents
-void LNS::randomWalk(int agent_id, int start_location, int start_timestep,
+void LNS::randomWalk(int agent_id, Location start_location, int start_timestep,
                      set<int>& conflicting_agents, int neighbor_size, int upperbound)
 {
-    int loc = start_location;
+    Location loc = start_location;
     for (int t = start_timestep; t < upperbound; t++)
     {
-        auto next_locs = instance.getNeighbors(loc);
+        auto next_locs = instance->getNeighbors(loc);
         next_locs.push_back(loc);
         while (!next_locs.empty())
         {
             int step = rand() % next_locs.size();
             auto it = next_locs.begin();
             advance(it, step);
-            int next_h_val = agents[agent_id].path_planner->my_heuristic[*it];
+            int next_h_val = agents[agent_id].path_planner->my_heuristic[(*it).location];
             if (t + 1 + next_h_val < upperbound) // move to this location
             {
-                path_table.getConflictingAgents(agent_id, conflicting_agents, loc, *it, t + 1);
+                path_table.getConflictingAgents(agent_id, conflicting_agents, loc.location, (*it).location, t + 1);
                 loc = *it;
                 break;
             }
@@ -722,24 +729,24 @@ void LNS::validateSolution() const
             cerr << "No solution for agent " << a1_.id << endl;
             exit(-1);
         }
-        else if (a1_.path_planner->start_location != a1_.path.front().location)
+        else if (a1_.path_planner->start_location.location != a1_.path.front().Loc.location)
         {
-            cerr << "The path of agent " << a1_.id << " starts from location " << a1_.path.front().location
-                << ", which is different from its start location " << a1_.path_planner->start_location << endl;
+            cerr << "The path of agent " << a1_.id << " starts from location " << a1_.path.front().Loc.location
+                << ", which is different from its start location " << a1_.path_planner->start_location.location << endl;
             exit(-1);
         }
-        else if (a1_.path_planner->goal_location != a1_.path.back().location)
+        else if (a1_.path_planner->goal_location.location != a1_.path.back().Loc.location)
         {
-            cerr << "The path of agent " << a1_.id << " ends at location " << a1_.path.back().location
-                 << ", which is different from its goal location " << a1_.path_planner->goal_location << endl;
+            cerr << "The path of agent " << a1_.id << " ends at location " << a1_.path.back().Loc.location
+                 << ", which is different from its goal location " << a1_.path_planner->goal_location.location << endl;
             exit(-1);
         }
         for (int t = 1; t < (int) a1_.path.size(); t++ )
         {
-            if (!instance.validMove(a1_.path[t - 1].location, a1_.path[t].location))
+            if (!(*instance).validMove(a1_.path[t - 1].Loc.location, a1_.path[t].Loc.location))
             {
                 cerr << "The path of agent " << a1_.id << " jump from "
-                     << a1_.path[t - 1].location << " to " << a1_.path[t].location
+                     << a1_.path[t - 1].Loc.location << " to " << a1_.path[t].Loc.location
                      << " between timesteps " << t - 1 << " and " << t << endl;
                 exit(-1);
             }
@@ -754,25 +761,25 @@ void LNS::validateSolution() const
             int t = 1;
             for (; t < (int) a1.path.size(); t++)
             {
-                if (a1.path[t].location == a2.path[t].location) // vertex conflict
+                if (a1.path[t].Loc.location == a2.path[t].Loc.location) // vertex conflict
                 {
                     cerr << "Find a vertex conflict between agents " << a1.id << " and " << a2.id <<
-                            " at location " << a1.path[t].location << " at timestep " << t << endl;
+                            " at location " << a1.path[t].Loc.location << " at timestep " << t << endl;
                     exit(-1);
                 }
-                else if (a1.path[t].location == a2.path[t - 1].location &&
-                        a1.path[t - 1].location == a2.path[t].location) // edge conflict
+                else if (a1.path[t].Loc.location == a2.path[t - 1].Loc.location &&
+                        a1.path[t - 1].Loc.location == a2.path[t].Loc.location) // edge conflict
                 {
                     cerr << "Find an edge conflict between agents " << a1.id << " and " << a2.id <<
-                         " at edge (" << a1.path[t - 1].location << "," << a1.path[t].location <<
+                         " at edge (" << a1.path[t - 1].Loc.location << "," << a1.path[t].Loc.location <<
                          ") at timestep " << t << endl;
                     exit(-1);
                 }
             }
-            int target = a1.path.back().location;
+            int target = a1.path.back().Loc.location;
             for (; t < (int) a2.path.size(); t++)
             {
-                if (a2.path[t].location == target)  // target conflict
+                if (a2.path[t].Loc.location == target)  // target conflict
                 {
                     cerr << "Find a target conflict where agent " << a2.id << " (of length " << a2.path.size() - 1<<
                          ") traverses agent " << a1.id << " (of length " << a1.path.size() - 1<<
@@ -788,6 +795,7 @@ void LNS::validateSolution() const
              " is different from the sum of the paths in the solution " << sum << endl;
         exit(-1);
     }
+    std::cout << "Plan is correct" << std::endl;
 }
 
 void LNS::writeIterStatsToFile(const string & file_name) const
@@ -836,51 +844,144 @@ void LNS::writeResultToFile(const string & file_name) const
         name += "-LNS.csv";
     else
         name += "-" + init_algo_name + ".csv";
-    std::ifstream infile(name);
-    bool exist = infile.good();
-    infile.close();
-    if (!exist)
+    
+    if (!instance->delay_)
     {
-        ofstream addHeads(name);
-        addHeads << "runtime,solution cost,initial solution cost,lower bound,sum of distance," <<
-                 "iterations," <<
-                 "group size," <<
-                 "runtime of initial solution,restart times,area under curve," <<
-                 "LL expanded nodes,LL generated,LL reopened,LL runs," <<
-                 "preprocessing runtime,solver name,instance name" << endl;
-        addHeads.close();
-    }
-    uint64_t num_LL_expanded = 0, num_LL_generated = 0, num_LL_reopened = 0, num_LL_runs = 0;
-    for (auto & agent : agents)
-    {
-        agent.path_planner->reset();
-        num_LL_expanded += agent.path_planner->accumulated_num_expanded;
-        num_LL_generated += agent.path_planner->accumulated_num_generated;
-        num_LL_reopened += agent.path_planner->accumulated_num_reopened;
-        num_LL_runs += agent.path_planner->num_runs;
-    }
-    double auc = 0;
-    if (!iteration_stats.empty())
-    {
-        auto prev = iteration_stats.begin();
-        auto curr = prev;
-        ++curr;
-        while (curr != iteration_stats.end() && curr->runtime < time_limit)
+        // regular instance -- regular stats
+        std::ifstream infile(name);
+        bool exist = infile.good();
+        infile.close();
+        if (!exist)
         {
-            auc += (prev->sum_of_costs - sum_of_distances) * (curr->runtime - prev->runtime);
-            prev = curr;
-            ++curr;
+            ofstream addHeads(name);
+            addHeads << "runtime,num agents,solution cost,initial solution cost,lower bound,sum of distance," <<
+                     "iterations," <<
+                     "group size," <<
+                     "runtime of initial solution,restart times,area under curve," <<
+                     "LL expanded nodes,LL generated,LL reopened,LL runs," <<
+                     "preprocessing runtime,solver name,instance name" << endl;
+            addHeads.close();
         }
-        auc += (prev->sum_of_costs - sum_of_distances) * (time_limit - prev->runtime);
+        uint64_t num_LL_expanded = 0, num_LL_generated = 0, num_LL_reopened = 0, num_LL_runs = 0;
+        for (auto & agent : agents)
+        {
+            agent.path_planner->reset();
+            num_LL_expanded += agent.path_planner->accumulated_num_expanded;
+            num_LL_generated += agent.path_planner->accumulated_num_generated;
+            num_LL_reopened += agent.path_planner->accumulated_num_reopened;
+            num_LL_runs += agent.path_planner->num_runs;
+        }
+        double auc = 0;
+        if (!iteration_stats.empty())
+        {
+            auto prev = iteration_stats.begin();
+            auto curr = prev;
+            ++curr;
+            while (curr != iteration_stats.end() && curr->runtime < time_limit)
+            {
+                auc += (prev->sum_of_costs - sum_of_distances) * (curr->runtime - prev->runtime);
+                prev = curr;
+                ++curr;
+            }
+            auc += (prev->sum_of_costs - sum_of_distances) * (time_limit - prev->runtime);
+        }
+        ofstream stats(name, std::ios::app);
+        stats << runtime << "," << agents.size() << "," << sum_of_costs << "," << initial_sum_of_costs << "," <<
+              max(sum_of_distances, sum_of_costs_lowerbound) << "," << sum_of_distances << "," <<
+              iteration_stats.size() << "," << average_group_size << "," <<
+              initial_solution_runtime << "," << restart_times << "," << auc << "," <<
+              num_LL_expanded << "," << num_LL_generated << "," << num_LL_reopened << "," << num_LL_runs << "," <<
+              preprocessing_time << "," << getSolverName() << "," << (*instance).getInstanceName() << endl;
+        stats.close();
     }
-    ofstream stats(name, std::ios::app);
-    stats << runtime << "," << sum_of_costs << "," << initial_sum_of_costs << "," <<
-          max(sum_of_distances, sum_of_costs_lowerbound) << "," << sum_of_distances << "," <<
-          iteration_stats.size() << "," << average_group_size << "," <<
-          initial_solution_runtime << "," << restart_times << "," << auc << "," <<
-          num_LL_expanded << "," << num_LL_generated << "," << num_LL_reopened << "," << num_LL_runs << "," <<
-          preprocessing_time << "," << getSolverName() << "," << instance.getInstanceName() << endl;
-    stats.close();
+    else
+    {
+        // delay instance -- care more about different stats
+        std::ifstream infile(name);
+        bool exist = infile.good();
+        infile.close();
+        if (!exist)
+        {
+            ofstream addHeads(name);
+            addHeads << "runtime,num agents,induced delays,solution cost,initial solution cost,lower bound,sum of distance," <<
+                     "iterations," <<
+                     "group size," <<
+                     "runtime of initial solution,restart times,area under curve," <<
+                     "LL expanded nodes,LL generated,LL reopened,LL runs," <<
+                     "preprocessing runtime,solver name,instance name" << endl;
+            addHeads.close();
+        }
+        uint64_t num_LL_expanded = 0, num_LL_generated = 0, num_LL_reopened = 0, num_LL_runs = 0;
+        for (auto & agent : agents)
+        {
+            agent.path_planner->reset();
+            num_LL_expanded += agent.path_planner->accumulated_num_expanded;
+            num_LL_generated += agent.path_planner->accumulated_num_generated;
+            num_LL_reopened += agent.path_planner->accumulated_num_reopened;
+            num_LL_runs += agent.path_planner->num_runs;
+        }
+        double auc = 0;
+        if (!iteration_stats.empty())
+        {
+            auto prev = iteration_stats.begin();
+            auto curr = prev;
+            ++curr;
+            while (curr != iteration_stats.end() && curr->runtime < time_limit)
+            {
+                auc += (prev->sum_of_costs - sum_of_distances) * (curr->runtime - prev->runtime);
+                prev = curr;
+                ++curr;
+            }
+            auc += (prev->sum_of_costs - sum_of_distances) * (time_limit - prev->runtime);
+        }
+        ofstream stats(name, std::ios::app);
+        stats << runtime << "," << agents.size() << "," << instance->numDelays << "," << sum_of_costs << "," << initial_sum_of_costs << "," <<
+              max(sum_of_distances, sum_of_costs_lowerbound) << "," << sum_of_distances << "," <<
+              iteration_stats.size() << "," << average_group_size << "," <<
+              initial_solution_runtime << "," << restart_times << "," << auc << "," <<
+              num_LL_expanded << "," << num_LL_generated << "," << num_LL_reopened << "," << num_LL_runs << "," <<
+              preprocessing_time << "," << getSolverName() << "," << (*instance).getInstanceName() << endl;
+        stats.close();
+    }
+}
+
+void LNS::countInducedDelays(std::vector<Path> &old_paths) const
+{
+    // first, run sanity checks
+    const int shift = instance->delay_->second + 1;
+    // now, examine the number of delays
+    // note that delays may only be induced iff new path > 1
+    std::vector<int> agent_ids{};
+    for (const auto &agent : agents)
+    {
+        if (agent.path.size() > 1)
+            agent_ids.push_back(agent.id);
+    }
+
+    for (int a : agent_ids)
+    {
+        // std::cout << "Agent: " << a << std::endl;
+        auto new_path = agents[a].path;
+        auto old_path = old_paths[a];
+        int new_idx = 0;
+        int old_idx = shift;
+        // for (int t = shift; t < old_paths[a].size(); t++)
+        while ((new_path.begin() + new_idx != new_path.end()))
+        {
+            // std::cout << "new loc: " << new_path[new_idx].Loc.location << std::endl;
+            // std::cout << "old loc: " << old_path[old_idx].Loc.location << std::endl;
+            while ( new_path[new_idx].Loc.location != old_path[old_idx].Loc.location )
+            {
+                new_idx++;
+                instance->numDelays++;
+            }
+            old_idx++;
+            new_idx++;
+        }
+        // std::cout << "numDelays: " << instance->numDelays << std::endl;
+        // std::cin.ignore(std::numeric_limits<std::streamsize>::max(),'\n');
+    }
+    std::cout << "induced " << instance->numDelays << " delays" << std::endl;
 }
 
 void LNS::writePathsToFile(const string & file_name) const
@@ -894,8 +995,8 @@ void LNS::writePathsToFile(const string & file_name) const
     {
         output << "Agent " << agent.id << ":";
         for (const auto &state : agent.path)
-            output << "(" << instance.getRowCoordinate(state.location) << "," <<
-                            instance.getColCoordinate(state.location) << ")->";
+            output << "(" << (*instance).getRowCoordinate(state.Loc.location) << "," <<
+                            (*instance).getColCoordinate(state.Loc.location) << ")->";
         output << endl;
     }
     output.close();

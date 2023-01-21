@@ -1488,8 +1488,8 @@ bool CBSHeuristic::SyncMDDs(const MDD &mdd, const MDD& other) // assume mdd.leve
 				{
 					for (const MDDNode* childOfParentCoexistingNode : parentCoexistingNode->children)
 					{
-						if ((*node)->location == childOfParentCoexistingNode->location ||// vertex conflict
-							((*node)->location == parentCoexistingNode->location && (*parent)->location == childOfParentCoexistingNode->location)) // edge conflict
+						if ((*node)->location == childOfParentCoexistingNode->loc.location ||// vertex conflict
+							((*node)->location == parentCoexistingNode->loc.location && (*parent)->location == childOfParentCoexistingNode->loc.location)) // edge conflict
 							continue;
 
 						auto it = (*node)->coexistingNodesFromOtherMdds.cbegin();

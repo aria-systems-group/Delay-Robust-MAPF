@@ -45,10 +45,52 @@ typedef std::chrono::duration<float> fsec;
 #define MAX_COST INT_MAX / 2
 #define MAX_NODES INT_MAX / 2
 
+
+class Location
+{
+public:
+    int location;
+    int index;
+    Location(int loc = -1):location(loc), index(-1){}
+    // Location(const Location& Loc): location(Loc.location), index(Loc.index){}
+    Location(int loc, int idx): location(loc), index(idx){}
+
+    bool operator== (const Location& other) const
+    {
+        return ((this->location == other.location) &&
+                (this->index == other.index));
+    }
+};
+
+namespace std {
+
+    template <>
+    struct hash<Location>
+    {
+        std::size_t operator()(const Location& l) const
+        {
+            auto hash1 = hash<int>{}(l.location);
+            auto hash2 = hash<int>{}(l.index);
+ 
+            if (hash1 != hash2) {
+                return hash1 ^ hash2;             
+            }
+         
+            // If hash1 == hash2, their XOR is zero.
+            return hash1;
+        }
+    };
+}
+
 struct PathEntry
 {
-	int location = -1;
-	explicit PathEntry(int loc = -1) { location = loc; }
+	Location Loc;
+    PathEntry():Loc() {}
+    PathEntry(Location loc):Loc(loc) { }
+    bool operator== (const PathEntry& other) const
+    {
+        return (this->Loc == other.Loc);
+    }
 };
 
 typedef vector<PathEntry> Path;

@@ -8,7 +8,7 @@ int RANDOM_WALK_STEPS = 100000;
 
 Instance::Instance(const string& map_fname, const string& agent_fname, 
 	int num_of_agents, int num_of_rows, int num_of_cols, int num_of_obstacles, int warehouse_width):
-	map_fname(map_fname), agent_fname(agent_fname), num_of_agents(num_of_agents)
+	map_fname(map_fname), agent_fname(agent_fname), num_of_agents(num_of_agents), delay_(nullptr)
 {
 	bool succ = loadMap();
 	if (!succ)
@@ -41,28 +41,27 @@ Instance::Instance(const string& map_fname, const string& agent_fname,
 			exit(-1);
 		}
 	}
-
 }
 
 
-int Instance::randomWalk(int curr, int steps) const
+int Instance::randomWalk(Location curr, int steps)
 {
 	for (int walk = 0; walk < steps; walk++)
 	{
-		list<int> l = getNeighbors(curr);
-		vector<int> next_locations(l.cbegin(), l.cend());
+		list<Location> l = getNeighbors(curr);
+		vector<Location> next_locations(l.cbegin(), l.cend());
 		auto rng = std::default_random_engine{};
 		std::shuffle(std::begin(next_locations), std::end(next_locations), rng);
-		for (int next : next_locations)
+		for (Location next : next_locations)
 		{
-			if (validMove(curr, next))
+			if (validMove(curr.location, next.location))
 			{
 				curr = next;
 				break;
 			}
 		}
 	}
-	return curr;
+	return curr.location;
 }
 
 void Instance::generateRandomAgents(int warehouse_width)
@@ -183,23 +182,23 @@ bool Instance::addObstacle(int obstacle)
 	return true;
 }
 
-bool Instance::isConnected(int start, int goal)
+bool Instance::isConnected(Location start, Location goal)
 {
-	std::queue<int> open;
-	vector<bool> closed(map_size, false);
+	std::queue<Location> open;
+	vector<Location> closed;
 	open.push(start);
-	closed[start] = true;
+	closed.push_back(start);
 	while (!open.empty())
 	{
-		int curr = open.front(); open.pop();
-		if (curr == goal)
+		Location curr = open.front(); open.pop();
+		if ((curr.location == goal.location) && (curr.index == goal.index))
 			return true;
-		for (int next : getNeighbors(curr))
+		for (Location next : getNeighbors(curr))
 		{
-			if (closed[next])
+			if (std::find(closed.begin(), closed.end(), next) != closed.end())
 				continue;
 			open.push(next);
-			closed[next] = true;
+			closed.push_back(next);
 		}
 	}
 	return false;
@@ -292,6 +291,8 @@ bool Instance::loadMap()
 			my_map[linearizeCoordinate(i, j)] = (line[j] != '.');
 		}
 	}
+	// std::cout << my_map[linearizeCoordinate(30, 3)] << std::endl;
+	// exit(1);
 	myfile.close();
 
 	// initialize moves_offset array
@@ -384,13 +385,13 @@ bool Instance::loadAgents()
 			int col = atoi((*beg).c_str());
 			beg++;
 			int row = atoi((*beg).c_str());
-			start_locations[i] = linearizeCoordinate(row, col);
+			start_locations[i].location = linearizeCoordinate(row, col);
 			// read goal [row,col] for agent i
 			beg++;
 			col = atoi((*beg).c_str());
 			beg++;
 			row = atoi((*beg).c_str());
-			goal_locations[i] = linearizeCoordinate(row, col);
+			goal_locations[i].location = linearizeCoordinate(row, col);
 		}
 	}
 	else // My benchmark
@@ -430,8 +431,8 @@ void Instance::printAgents() const
 {
   for (int i = 0; i < num_of_agents; i++) 
   {
-    cout << "Agent" << i << " : S=(" << getRowCoordinate(start_locations[i]) << "," << getColCoordinate(start_locations[i]) 
-				<< ") ; G=(" << getRowCoordinate(goal_locations[i]) << "," << getColCoordinate(goal_locations[i]) << ")" << endl;
+    cout << "Agent" << i << " : S=(" << getRowCoordinate(start_locations[i].location) << "," << getColCoordinate(start_locations[i].location) 
+				<< ") ; G=(" << getRowCoordinate(goal_locations[i].location) << "," << getColCoordinate(goal_locations[i].location) << ")" << endl;
   }
 }
 
@@ -447,8 +448,8 @@ void Instance::saveAgents() const
   }
   myfile << num_of_agents << endl;
   for (int i = 0; i < num_of_agents; i++)
-    myfile << getRowCoordinate(start_locations[i]) << "," << getColCoordinate(start_locations[i]) << ","
-           << getRowCoordinate(goal_locations[i]) << "," << getColCoordinate(goal_locations[i]) << "," << endl;
+    myfile << getRowCoordinate(start_locations[i].location) << "," << getColCoordinate(start_locations[i].location) << ","
+           << getRowCoordinate(goal_locations[i].location) << "," << getColCoordinate(goal_locations[i].location) << "," << endl;
   myfile.close();
 }
 
@@ -464,21 +465,23 @@ void Instance::saveNathan() const
     myfile << "version 1" << endl;
     for (int i = 0; i < num_of_agents; i++)
         myfile << i<<"\t"<<map_fname<<"\t"<<this->num_of_cols<<"\t"<<this->num_of_rows<<"\t"
-                << getColCoordinate(start_locations[i]) << "\t" << getRowCoordinate(start_locations[i]) << "\t"
-                << getColCoordinate(goal_locations[i]) << "\t" << getRowCoordinate(goal_locations[i]) << "\t"  <<0<< endl;
+                << getColCoordinate(start_locations[i].location) << "\t" << getRowCoordinate(start_locations[i].location) << "\t"
+                << getColCoordinate(goal_locations[i].location) << "\t" << getRowCoordinate(goal_locations[i].location) << "\t"  <<0<< endl;
     myfile.close();
 }
 
 
-list<int> Instance::getNeighbors(int curr) const
+list<Location> Instance::getNeighbors(Location curr)
 {
-	list<int> neighbors;
-	int candidates[4] = {curr + 1, curr - 1, curr + num_of_cols, curr - num_of_cols};
-	for (int next : candidates)
+	list<Location> neighbors;
+	int candidates[4] = {curr.location + 1, curr.location - 1, curr.location + num_of_cols, curr.location - num_of_cols};
+	for (int next_loc : candidates)
 	{
-		if (validMove(curr, next))
+		Location next = Location(next_loc);
+		if (validMove(curr.location, next.location))
 			neighbors.emplace_back(next);
 	}
+	neighbors.emplace_back(curr);
 	return neighbors;
 }
 
@@ -493,18 +496,38 @@ void Instance::savePaths(const string & file_name, const vector<Path*>& paths) c
         for (const auto &state : (*paths[i]))
         {
             if (nathan_benchmark)
-                output << "(" << getColCoordinate(state.location) << "," << getRowCoordinate(state.location) << ")->";
+                output << "(" << getColCoordinate(state.Loc.location) << "," << getRowCoordinate(state.Loc.location) << ")->";
             else
-                output << "(" << getRowCoordinate(state.location) << "," << getColCoordinate(state.location) << ")->";
+                output << "(" << getRowCoordinate(state.Loc.location) << "," << getColCoordinate(state.Loc.location) << ")->";
         }
         output << endl;
     }
     output.close();
 }
 
-bool Instance::validateSolution(const vector<Path*>& paths, int sum_of_costs, int num_of_colliding_pairs) const
+void Instance::savePaths(const string & file_name, const vector<Path> paths) const
 {
-    cout << "Validate solution ..." << endl;
+    std::ofstream output;
+    output.open(file_name);
+
+    for (auto i = 0; i < paths.size(); i++)
+    {
+        output << "Agent " << i << ":";
+        for (const auto &state : (paths[i]))
+        {
+            if (nathan_benchmark)
+                output << "(" << getColCoordinate(state.Loc.location) << "," << getRowCoordinate(state.Loc.location) << ")->";
+            else
+                output << "(" << getRowCoordinate(state.Loc.location) << "," << getColCoordinate(state.Loc.location) << ")->";
+        }
+        output << endl;
+    }
+    output.close();
+}
+
+bool Instance::validateSolution(const vector<Path*>& paths, int sum_of_costs, int num_of_colliding_pairs)
+{
+    // cout << "Validate solution ..." << endl;
     if (paths.size() != start_locations.size())
     {
         cerr << "We have " << paths.size() << " for " << start_locations.size() << " agents." << endl;
@@ -518,24 +541,24 @@ bool Instance::validateSolution(const vector<Path*>& paths, int sum_of_costs, in
             cerr << "No path for agent " << i << endl;
             exit(-1);
         }
-        else if (start_locations[i] != paths[i]->front().location)
+        else if (start_locations[i].location != paths[i]->front().Loc.location)
         {
-            cerr << "The path of agent " << i << " starts from location " << paths[i]->front().location
-                 << ", which is different from its start location " << start_locations[i] << endl;
+            cerr << "The path of agent " << i << " starts from location " << paths[i]->front().Loc.location
+                 << ", which is different from its start location " << start_locations[i].location << endl;
             exit(-1);
         }
-        else if (goal_locations[i] != paths[i]->back().location)
+        else if (goal_locations[i].location != paths[i]->back().Loc.location)
         {
-            cerr << "The path of agent " << i << " ends at location " << paths[i]->back().location
-                 << ", which is different from its goal location " << goal_locations[i] << endl;
+            cerr << "The path of agent " << i << " ends at location " << paths[i]->back().Loc.location
+                 << ", which is different from its goal location " << goal_locations[i].location << endl;
             exit(-1);
         }
         for (int t = 1; t < (int) paths[i]->size(); t++ )
         {
-            if (!validMove(paths[i]->at(t - 1).location, paths[i]->at(t).location))
+            if (!validMove(paths[i]->at(t - 1).Loc.location, paths[i]->at(t).Loc.location))
             {
                 cerr << "The path of agent " << i << " jumps from "
-                     << paths[i]->at(t - 1).location << " to " << paths[i]->at(t).location
+                     << paths[i]->at(t - 1).Loc.location << " to " << paths[i]->at(t).Loc.location
                      << " between timesteps " << t - 1 << " and " << t << endl;
                 exit(-1);
             }
@@ -560,27 +583,29 @@ bool Instance::validateSolution(const vector<Path*>& paths, int sum_of_costs, in
             int t = 1;
             for (; t < (int) paths[a1]->size(); t++)
             {
-                if (paths[a1]->at(t).location == paths[a2]->at(t).location) // vertex conflict
+                if (paths[a1]->at(t).Loc.location == paths[a2]->at(t).Loc.location) // vertex conflict
                 {
                     if (num_of_colliding_pairs == 0)
                     {
+                    	coll_time = t;
                         cerr << "Find a vertex conflict between agents " << a1 << " and " << a2 <<
-                             " at location " << paths[a1]->at(t).location << " at timestep " << t << endl;
-                        exit(-1);
+                             " at location " << paths[a1]->at(t).Loc.location << " at timestep " << t << endl;
+                        return false;
                     }
                     collisions++;
                     found_collision = true;
                     break;
                 }
-                else if (paths[a1]->at(t).location == paths[a2]->at(t-1).location &&
-                        paths[a1]->at(t-1).location == paths[a2]->at(t).location) // edge conflict
+                else if (paths[a1]->at(t).Loc.location == paths[a2]->at(t-1).Loc.location &&
+                        paths[a1]->at(t-1).Loc.location == paths[a2]->at(t).Loc.location) // edge conflict
                 {
                     if (num_of_colliding_pairs == 0)
                     {
+                    	coll_time = t;
                         cerr << "Find an edge conflict between agents " << a1 << " and " << a2 <<
-                             " at edge (" << paths[a1]->at(t-1).location << "," << paths[a1]->at(t).location <<
+                             " at edge (" << paths[a1]->at(t-1).Loc.location << "," << paths[a1]->at(t).Loc.location <<
                              ") at timestep " << t << endl;
-                        exit(-1);
+                        return false;
                     }
                     collisions++;
                     found_collision = true;
@@ -589,17 +614,18 @@ bool Instance::validateSolution(const vector<Path*>& paths, int sum_of_costs, in
             }
             if (!found_collision)
             {
-                auto target = paths[a1]->back().location;
+                auto target = paths[a1]->back().Loc.location;
                 for (; t < (int) paths[a2]->size(); t++)
                 {
-                    if (paths[a2]->at(t).location == target)  // target conflict
+                    if (paths[a2]->at(t).Loc.location == target)  // target conflict
                     {
                         if (num_of_colliding_pairs == 0)
                         {
+                        	coll_time = t;
                             cerr << "Find a target conflict where agent " << a2 << " (of length " << paths[a2]->size() - 1 <<
                                  ") traverses agent " << a1 << " (of length " << paths[a1]->size() - 1<<
                                  ")'s target location " << target << " at timestep " << t << endl;
-                            exit(-1);
+                            return false;
                         }
                         collisions++;
                         break;
@@ -612,8 +638,8 @@ bool Instance::validateSolution(const vector<Path*>& paths, int sum_of_costs, in
     {
         cerr << "The computed number of colliding pairs " << num_of_colliding_pairs <<
              " is different from that of the solution " << collisions << endl;
-        exit(-1);
+        return false;
     }
-    cout << "Done!" << endl;
+    // cout << "Done!" << endl;
     return true;
 }

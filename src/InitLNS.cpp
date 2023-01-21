@@ -4,10 +4,10 @@
 #include "GCBS.h"
 #include "PBS.h"
 
-InitLNS::InitLNS(const Instance& instance, vector<Agent>& agents, double time_limit,
+InitLNS::InitLNS(Instance *instance, vector<Agent>& agents, double time_limit,
          const string & replan_algo_name, const string & init_destory_name, int neighbor_size, int screen) :
          BasicLNS(instance, time_limit, neighbor_size, screen), agents(agents), replan_algo_name(replan_algo_name),
-         path_table(instance.map_size, agents.size()), collision_graph(agents.size()), goal_table(instance.map_size, -1)
+         path_table((*instance).map_size, agents.size()), collision_graph(agents.size()), goal_table((*instance).map_size, -1)
  {
      replan_time_limit = time_limit;
      if (init_destory_name == "Adaptive")
@@ -30,7 +30,7 @@ InitLNS::InitLNS(const Instance& instance, vector<Agent>& agents, double time_li
      }
 
      for (auto& i:agents) {
-         goal_table[i.path_planner->goal_location] = i.id;
+         goal_table[i.path_planner->goal_location.location] = i.id;
      }
 
  }
@@ -54,7 +54,6 @@ bool InitLNS::run()
         printResult();
         return false;
     }
-
     vector<Path*> paths(agents.size());
     for (auto i = 0; i < agents.size(); i++)
         paths[i] = &agents[i].path;
@@ -63,7 +62,6 @@ bool InitLNS::run()
         assert(instance.validateSolution(paths, sum_of_costs, num_of_colliding_pairs));
         if (ALNS)
             chooseDestroyHeuristicbyALNS();
-
         switch (init_destroy_strategy)
         {
             case TARGET_BASED:
@@ -126,7 +124,6 @@ bool InitLNS::run()
             cout << endl;
 
         }
-
         if (replan_algo_name == "PP" || neighbor.agents.size() == 1)
             succ = runPP();
         else if (replan_algo_name == "GCBS")
@@ -193,11 +190,11 @@ bool InitLNS::runGCBS()
     }
 
     // build path tables
-    vector<PathTable> path_tables(neighbor.agents.size(), PathTable(instance.map_size));
+    vector<PathTable> path_tables(neighbor.agents.size(), PathTable((*instance).map_size));
     for (int i = 0; i < (int)neighbor.agents.size(); i++)
     {
         int agent_id = neighbor.agents[i];
-        for (int j = 0; j < instance.getDefaultNumberOfAgents(); j++)
+        for (int j = 0; j < (*instance).getDefaultNumberOfAgents(); j++)
         {
             if (j != agent_id and collision_graph[agent_id].count(j) == 0)
                 path_tables[i].insertPath(j, agents[j].path);
@@ -307,12 +304,12 @@ bool InitLNS::runPP()
     runtime = ((fsec)(Time::now() - start_time)).count();
     double T = min(time_limit - runtime, replan_time_limit);
     auto time = Time::now();
-    ConstraintTable constraint_table(instance.num_of_cols, instance.map_size, nullptr, &path_table);
+    ConstraintTable constraint_table((*instance).num_of_cols, (*instance).map_size, nullptr, &path_table);
     while (p != shuffled_agents.end() && ((fsec)(Time::now() - time)).count() < T)
     {
         int id = *p;
         agents[id].path = agents[id].path_planner->findPath(constraint_table);
-        assert(!agents[id].path.empty() && agents[id].path.back().location == agents[id].path_planner->goal_location);
+        assert(!agents[id].path.empty() && agents[id].path.back().location == agents[id].path_planner->goal_location.location);
         if (agents[id].path_planner->num_collisions > 0)
             updateCollidingPairs(neighbor.colliding_pairs, agents[id].id, agents[id].path);
         assert(agents[id].path_planner->num_collisions > 0 or
@@ -380,12 +377,12 @@ bool InitLNS::getInitialSolution()
     }
     int remaining_agents = (int)neighbor.agents.size();
     std::random_shuffle(neighbor.agents.begin(), neighbor.agents.end());
-    ConstraintTable constraint_table(instance.num_of_cols, instance.map_size, nullptr, &path_table);
+    ConstraintTable constraint_table((*instance).num_of_cols, (*instance).map_size, nullptr, &path_table);
     set<pair<int, int>> colliding_pairs;
     for (auto id : neighbor.agents)
     {
         agents[id].path = agents[id].path_planner->findPath(constraint_table);
-        assert(!agents[id].path.empty() && agents[id].path.back().location == agents[id].path_planner->goal_location);
+        assert(!agents[id].path.empty() && agents[id].path.back().location == agents[id].path_planner->goal_location.location);
         if (agents[id].path_planner->num_collisions > 0)
             updateCollidingPairs(colliding_pairs, agents[id].id, agents[id].path);
         sum_of_costs += (int)agents[id].path.size() - 1;
@@ -422,8 +419,8 @@ bool InitLNS::updateCollidingPairs(set<pair<int, int>>& colliding_pairs, int age
         return succ;
     for (int t = 1; t < (int)path.size(); t++)
     {
-        int from = path[t - 1].location;
-        int to = path[t].location;
+        int from = path[t - 1].Loc.location;
+        int to = path[t].Loc.location;
         if ((int)path_table.table[to].size() > t) // vertex conflicts
         {
             for (auto id : path_table.table[to][t])
@@ -454,7 +451,7 @@ bool InitLNS::updateCollidingPairs(set<pair<int, int>>& colliding_pairs, int age
         { // this agent traverses the target of another agent
             for (auto id : path_table.table[to][path_table.goals[to]]) // look at all agents at the goal time
             {
-                if (agents[id].path.back().location == to) // if agent id's goal is to, then this is the agent we want
+                if (agents[id].path.back().Loc.location == to) // if agent id's goal is to, then this is the agent we want
                 {
                     succ = true;
                     colliding_pairs.emplace(min(agent_id, id), max(agent_id, id));
@@ -463,7 +460,7 @@ bool InitLNS::updateCollidingPairs(set<pair<int, int>>& colliding_pairs, int age
             }
         }
     }
-    int goal = path.back().location; // target conflicts - some other agent traverses the target of this agent
+    int goal = path.back().Loc.location; // target conflicts - some other agent traverses the target of this agent
     for (int t = (int)path.size(); t < path_table.table[goal].size(); t++)
     {
         for (auto id : path_table.table[goal][t])
@@ -601,17 +598,14 @@ bool InitLNS::generateNeighborByTarget()
     set<int> A_target;
 
 
-    for(int t = 0 ;t< path_table.table[agents[a].path_planner->start_location].size();t++){
-        for(auto id : path_table.table[agents[a].path_planner->start_location][t]){
+    for(int t = 0 ;t< path_table.table[agents[a].path_planner->start_location.location].size();t++){
+        for(auto id : path_table.table[agents[a].path_planner->start_location.location][t]){
             if (id!=a)
                 A_start.insert(make_pair(t,id));
         }
     }
 
-
-
-    agents[a].path_planner->findMinimumSetofColldingTargets(goal_table,A_target);// generate non-wait path and collect A_target
-
+    agents[a].path_planner->findMinimumSetofColldingTargets(goal_table, A_target);// generate non-wait path and collect A_target
 
     if (screen >= 3){
         cout<<"     Selected a : "<< a<<endl;
@@ -674,8 +668,8 @@ bool InitLNS::generateNeighborByTarget()
 
             vector<int> targets;
             for(auto p: agents[a].path){
-                if(goal_table[p.location]>-1){
-                    targets.push_back(goal_table[p.location]);
+                if(goal_table[p.Loc.location]>-1){
+                    targets.push_back(goal_table[p.Loc.location]);
                 }
             }
 
@@ -732,13 +726,14 @@ bool InitLNS::generateNeighborRandomly()
 int InitLNS::randomWalk(int agent_id)
 {
     int t = rand() % agents[agent_id].path.size();
-    int loc = agents[agent_id].path[t].location;
+    Location loc = agents[agent_id].path[t].Loc;
+    instance->agent_idx = agent_id;
     while (t <= path_table.makespan and
-           (path_table.table[loc].size() <= t or
-           path_table.table[loc][t].empty() or
-           (path_table.table[loc][t].size() == 1 and path_table.table[loc][t].front() == agent_id)))
+           (path_table.table[loc.location].size() <= t or
+           path_table.table[loc.location][t].empty() or
+           (path_table.table[loc.location][t].size() == 1 and path_table.table[loc.location][t].front() == agent_id)))
     {
-        auto next_locs = instance.getNeighbors(loc);
+        auto next_locs = instance->getNeighbors(loc);
         next_locs.push_back(loc);
         int step = rand() % next_locs.size();
         auto it = next_locs.begin();
@@ -748,7 +743,7 @@ int InitLNS::randomWalk(int agent_id)
     if (t > path_table.makespan)
         return NO_AGENT;
     else
-        return *std::next(path_table.table[loc][t].begin(), rand() % path_table.table[loc][t].size());
+        return *std::next(path_table.table[loc.location][t].begin(), rand() % path_table.table[loc.location][t].size());
 }
 
 void InitLNS::writeIterStatsToFile(const string & file_name) const
@@ -821,7 +816,7 @@ void InitLNS::writeResultToFile(const string & file_name, int sum_of_distances, 
           iteration_stats.size() << "," << average_group_size << "," <<
           iteration_stats.front().runtime << "," << auc << "," <<
           num_LL_expanded << "," << num_LL_generated << "," << num_LL_reopened << "," << num_LL_runs << "," <<
-          preprocessing_time << "," << getSolverName() << "," << instance.getInstanceName() << endl;
+          preprocessing_time << "," << getSolverName() << "," << (*instance).getInstanceName() << endl;
     stats.close();
 }
 

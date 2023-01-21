@@ -6,13 +6,13 @@ void PathTable::insertPath(int agent_id, const Path& path)
         return;
     for (int t = 0; t < (int)path.size(); t++)
     {
-        if (table[path[t].location].size() <= t)
-            table[path[t].location].resize(t + 1, NO_AGENT);
+        if (table[path[t].Loc.location].size() <= t)
+            table[path[t].Loc.location].resize(t + 1, NO_AGENT);
         // assert(table[path[t].location][t] == NO_AGENT);
-        table[path[t].location][t] = agent_id;
+        table[path[t].Loc.location][t] = agent_id;
     }
-    assert(goals[path.back().location] == MAX_TIMESTEP);
-    goals[path.back().location] = (int) path.size() - 1;
+    assert(goals[path.back().Loc.location] == MAX_TIMESTEP);
+    goals[path.back().Loc.location] = (int) path.size() - 1;
     makespan = max(makespan, (int) path.size() - 1);
 }
 
@@ -22,10 +22,10 @@ void PathTable::deletePath(int agent_id, const Path& path)
         return;
     for (int t = 0; t < (int)path.size(); t++)
     {
-        assert(table[path[t].location].size() > t && table[path[t].location][t] == agent_id);
-        table[path[t].location][t] = NO_AGENT;
+        assert(table[path[t].Loc.location].size() > t && table[path[t].Loc.location][t] == agent_id);
+        table[path[t].Loc.location][t] = NO_AGENT;
     }
-    goals[path.back().location] = MAX_TIMESTEP;
+    goals[path.back().Loc.location] = MAX_TIMESTEP;
     if (makespan == (int) path.size() - 1) // re-compute makespan
     {
         makespan = 0;
@@ -128,12 +128,12 @@ void PathTableWC::insertPath(int agent_id, const Path& path)
         return;
     for (int t = 0; t < (int)path.size(); t++)
     {
-        if (table[path[t].location].size() <= t)
-            table[path[t].location].resize(t + 1);
-        table[path[t].location][t].push_back(agent_id);
+        if (table[path[t].Loc.location].size() <= t)
+            table[path[t].Loc.location].resize(t + 1);
+        table[path[t].Loc.location][t].push_back(agent_id);
     }
-    assert(goals[path.back().location] == MAX_TIMESTEP);
-    goals[path.back().location] = (int) path.size() - 1;
+    assert(goals[path.back().Loc.location] == MAX_TIMESTEP);
+    goals[path.back().Loc.location] = (int) path.size() - 1;
     makespan = max(makespan, (int) path.size() - 1);
 }
 void PathTableWC::insertPath(int agent_id)
@@ -148,12 +148,12 @@ void PathTableWC::deletePath(int agent_id)
         return;
     for (int t = 0; t < (int)path.size(); t++)
     {
-        assert(table[path[t].location].size() > t &&
-               std::find (table[path[t].location][t].begin(), table[path[t].location][t].end(), agent_id)
-               != table[path[t].location][t].end());
-        table[path[t].location][t].remove(agent_id);
+        assert(table[path[t].Loc.location].size() > t &&
+               std::find (table[path[t].Loc.location][t].begin(), table[path[t].Loc.location][t].end(), agent_id)
+               != table[path[t].Loc.location][t].end());
+        table[path[t].Loc.location][t].remove(agent_id);
     }
-    goals[path.back().location] = MAX_TIMESTEP;
+    goals[path.back().Loc.location] = MAX_TIMESTEP;
     if (makespan == (int) path.size() - 1) // re-compute makespan
     {
         makespan = 0;
@@ -251,7 +251,7 @@ int PathTableWC::getAgentWithTarget(int target_location, int latest_timestep) co
         return -1;
     for (auto id : table[target_location][goals[target_location]]) // look at all agents at the goal time
     {
-        if (paths[id]->back().location == target_location) // if agent id's goal is to, then this is the agent we want
+        if (paths[id]->back().Loc.location == target_location) // if agent id's goal is to, then this is the agent we want
         {
             return id;
         }

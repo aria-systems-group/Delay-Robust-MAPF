@@ -77,3 +77,21 @@ std::ostream& operator<<(std::ostream& os, const HLNode& node)
 		node.getNumNewPaths() << " new paths ";
 	return os;
 }
+std::ostream& operator<<(std::ostream& os, const CBSNode& node)
+{
+	os << "Node " << node.time_generated << " from " << node.chosen_from << " ( f = "<< node.g_val << " + " <<
+		node.h_val << ", f hat = " << node.getFHatVal() - node.cost_to_go << " + " << node.cost_to_go <<
+		", d = " << node.distance_to_go << " ) with " <<
+		node.getNumNewPaths() << " new paths " << std::endl;
+	for (auto path_pair : node.paths){
+		std::cout << path_pair.first << std::endl;
+		for (auto pe : path_pair.second){
+			std::cout << pe.Loc.location << "," << pe.Loc.index << std::endl;
+		}
+	}
+	return os;
+}
+
+
+
+

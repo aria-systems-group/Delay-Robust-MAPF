@@ -100,8 +100,8 @@ void ConstraintPropagation::init_mutex(){
     // COMMENT unordered map can be changed to vector for efficiency
     auto loc2mdd = collectMDDlevel(mdd0, i);
     for (MDDNode* it_1 : mdd1->levels[i]){
-      if (loc2mdd.find(it_1->location) != loc2mdd.end()){
-        add_fwd_node_mutex(loc2mdd[it_1->location], it_1);
+      if (loc2mdd.find(it_1->loc.location) != loc2mdd.end()){
+        add_fwd_node_mutex(loc2mdd[it_1->loc.location], it_1);
       }
     }
   }
@@ -114,14 +114,14 @@ void ConstraintPropagation::init_mutex(){
     loc2mddThisLvl = loc2mddNextLvl;
     loc2mddNextLvl = collectMDDlevel(mdd1, i + 1);
     for (auto& node_0 : mdd0->levels[i]){
-      int loc_0 = node_0->location;
+      int loc_0 = node_0->loc.location;
       if (loc2mddNextLvl.find(loc_0) == loc2mddNextLvl.end()){
         continue;
       }
       MDDNode* node_1_to = loc2mddNextLvl[loc_0];
 
       for (auto node_0_to:node_0->children){
-        int loc_1 = node_0_to->location;
+        int loc_1 = node_0_to->loc.location;
         if (loc2mddThisLvl.find(loc_1) == loc2mddThisLvl.end()){
           continue;
         }
@@ -306,7 +306,7 @@ int ConstraintPropagation::_feasible(int level_0, int level_1){
 
   MDDNode* goal_ptr_j = mdd_l->goalAt(level_1);
 
-  int not_allowed_loc = goal_ptr_i->location;
+  int not_allowed_loc = goal_ptr_i->loc.location;
 
   boost::unordered_set<MDDNode*> closed;
 
@@ -329,7 +329,7 @@ int ConstraintPropagation::_feasible(int level_0, int level_1){
         continue;
       }
 
-      if (child_ptr->location == not_allowed_loc){
+      if (child_ptr->loc.location == not_allowed_loc){
         continue;
       }
 
@@ -408,7 +408,7 @@ std::pair<std::vector<Constraint>, std::vector<Constraint>> ConstraintPropagatio
           }
         }
         if (!non_all_mutexed){
-          cons_set_1.insert({l, ptr_j->location});
+          cons_set_1.insert({l, ptr_j->loc.location});
         }
       }
 
@@ -432,7 +432,7 @@ std::pair<std::vector<Constraint>, std::vector<Constraint>> ConstraintPropagatio
     // for level_j, we still need to consider consflict after i reach goal;
     MDDNode* goal_ptr_j = mdd_l->goalAt(level_1);
 
-    int not_allowed_loc = goal_ptr_i->location;
+    int not_allowed_loc = goal_ptr_i->loc.location;
 
     boost::unordered_set<MDDNode*> closed;
     std::deque<MDDNode*> dfs_stack(non_mutexed.begin(), non_mutexed.end());
@@ -456,15 +456,15 @@ std::pair<std::vector<Constraint>, std::vector<Constraint>> ConstraintPropagatio
         if (closed.find(child_ptr) != closed.end()){
           continue;
         }
-        if (child_ptr->location == not_allowed_loc){
-          cons_set_1.insert({child_ptr->level, child_ptr->location});
+        if (child_ptr->loc.location == not_allowed_loc){
+          cons_set_1.insert({child_ptr->level, child_ptr->loc.location});
           continue;
         }
         dfs_stack.push_front(child_ptr);
       }
     }
 
-    Constraint length_con(0, goal_ptr_i->location, -1, level_0 - 1, constraint_type::GLENGTH);
+    Constraint length_con(0, goal_ptr_i->loc.location, -1, level_0 - 1, constraint_type::GLENGTH);
     // std::pair<int, int> length_con = {-1, level_0};
 
     std::vector<Constraint>cons_vec_1;
@@ -472,7 +472,7 @@ std::pair<std::vector<Constraint>, std::vector<Constraint>> ConstraintPropagatio
       cons_vec_1.push_back(Constraint(1, it.second, -1, it.first, constraint_type::VERTEX));
     }
     // std::vector<std::pair<int, int>> cons_vec_1(cons_set_1.begin(), cons_set_1.end());
-    cons_vec_1.push_back(Constraint(0, goal_ptr_i->location,  -1, level_0 - 1, constraint_type::LEQLENGTH));
+    cons_vec_1.push_back(Constraint(0, goal_ptr_i->loc.location,  -1, level_0 - 1, constraint_type::LEQLENGTH));
 
 
     if (reversed){
@@ -552,11 +552,11 @@ std::pair<std::vector<Constraint>, std::vector<Constraint>> ConstraintPropagatio
   std::vector<Constraint> cons_vec_1;
 
   for (auto& it:cons_0){
-    cons_vec_0.push_back({0, it->location, -1, it->level, constraint_type::VERTEX});
+    cons_vec_0.push_back({0, it->loc.location, -1, it->level, constraint_type::VERTEX});
     
   }
   for (auto& it:cons_1){
-    cons_vec_1.push_back({1, it->location, -1, it->level, constraint_type::VERTEX});
+    cons_vec_1.push_back({1, it->loc.location, -1, it->level, constraint_type::VERTEX});
   }
   if (reversed){
     return {cons_vec_1, cons_vec_0};

@@ -21,13 +21,24 @@ bool ECBS::solve(double time_limit, int _cost_lowerbound)
 
 	while (!cleanup_list.empty() && !solution_found)
 	{
+		std::cout << "entering main ECBS loop" << std::endl;
 		auto curr = selectNode();
+
+		std::cout << curr->getFVal() << std::endl;
+		exit(1);
+
+
+
+
 		if (terminate(curr))
         {
+        	std::cout << "terminat returned true" << std::endl;
             if (solution_found)
                 goal_node = curr;
             return solution_found;
         }
+        std::cout << "	paths size: " << (curr->paths).size() << std::endl;
+		exit(1);
 
 		if ((curr == dummy_start || curr->chosen_from == "cleanup") &&
 		     !curr->h_computed) // heuristics has not been computed yet
@@ -288,9 +299,11 @@ bool ECBS::generateRoot()
 	for (auto i : agents)
 	{
 		paths_found_initially[i] = search_engines[i]->findSuboptimalPath(*root, initial_constraints[i], paths, i, 0, suboptimality);
+		std::cout << "line 293" << std::endl;
 		if (paths_found_initially[i].first.empty())
 		{
 			cerr << "No path exists for agent " << i << endl;
+			exit(1);
 			delete root;
 			return false;
 		}
@@ -306,18 +319,23 @@ bool ECBS::generateRoot()
 		root->makespan = max(root->makespan, paths[i]->size() - 1);
 		root->g_val += min_f_vals[i];
 		root->sum_of_costs += (int)paths[i]->size() - 1;
+		std::cout << "root SOC " << root->sum_of_costs << " min_f_vals[i] " << min_f_vals[i] << 
+			" g_val " << root->g_val << std::endl;
 	}
 
 	root->h_val = 0;
 	root->depth = 0;
+	std::cout << "root " << root->getFVal() << std::endl;
+	std::cout << "finding conflicts" << std::endl;
 	findConflicts(*root);
+	std::cout << "done with conflicts" << std::endl;
     heuristic_helper.computeQuickHeuristics(*root);
 	pushNode(root);
 	dummy_start = root;
 
 	if (screen >= 2) // print start and goals
 		printPaths();
-
+	std::cout << "exiting with root" << std::endl;
 	return true;
 }
 
@@ -608,7 +626,7 @@ void ECBS::printPaths() const
 		cout << "Agent " << i << " (" << paths_found_initially[i].first.size() - 1 << " -->" <<
 			paths[i]->size() - 1 << "): ";
 		for (const auto & t : *paths[i])
-			cout << t.location << "->";
+			cout << t.Loc.location << "->";
 		cout << endl;
 	}
 }
@@ -736,16 +754,16 @@ void ECBS::computeConflictPriority(shared_ptr<Conflict>& con, ECBSNode& node)
 		if (timestep < (int)mdd1->levels.size())
 		{
 			cardinal1 = mdd1->levels[timestep].size() == 1 &&
-				mdd1->levels[timestep].front()->location == paths[a1]->at(timestep).location &&
+				mdd1->levels[timestep].front()->loc.location == paths[a1]->at(timestep).Loc.location &&
 				mdd1->levels[timestep - 1].size() == 1 &&
-				mdd1->levels[timestep - 1].front()->location == paths[a1]->at(timestep - 1).location;
+				mdd1->levels[timestep - 1].front()->loc.location == paths[a1]->at(timestep - 1).Loc.location;
 		}
 		if (timestep < (int)mdd2->levels.size())
 		{
 			cardinal2 = mdd2->levels[timestep].size() == 1 &&
-				mdd2->levels[timestep].front()->location == paths[a2]->at(timestep).location &&
+				mdd2->levels[timestep].front()->loc.location == paths[a2]->at(timestep).Loc.location &&
 				mdd2->levels[timestep - 1].size() == 1 &&
-				mdd2->levels[timestep - 1].front()->location == paths[a2]->at(timestep - 1).location;
+				mdd2->levels[timestep - 1].front()->loc.location == paths[a2]->at(timestep - 1).Loc.location;
 		}
 	}
 	else // vertex conflict or target conflict
@@ -753,12 +771,12 @@ void ECBS::computeConflictPriority(shared_ptr<Conflict>& con, ECBSNode& node)
 		if (!cardinal1 && timestep < (int)mdd1->levels.size())
 		{
 			cardinal1 = mdd1->levels[timestep].size() == 1 &&
-				mdd1->levels[timestep].front()->location == paths[a1]->at(timestep).location;
+				mdd1->levels[timestep].front()->loc.location == paths[a1]->at(timestep).Loc.location;
 		}
 		if (!cardinal2 && timestep < (int)mdd2->levels.size())
 		{
 			cardinal2 = mdd2->levels[timestep].size() == 1 &&
-				mdd2->levels[timestep].front()->location == paths[a2]->at(timestep).location;
+				mdd2->levels[timestep].front()->loc.location == paths[a2]->at(timestep).Loc.location;
 		}
 	}
 

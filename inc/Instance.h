@@ -1,6 +1,7 @@
 #pragma once
 #include"common.h"
 
+typedef std::pair<const int, const int> Delay; // a pair (agent, time)
 
 // Currently only works for undirected unweighted 4-nighbor grids
 class Instance 
@@ -16,15 +17,16 @@ public:
 	Instance(const string& map_fname, const string& agent_fname, 
 		int num_of_agents = 0, int num_of_rows = 0, int num_of_cols = 0, int num_of_obstacles = 0, int warehouse_width = 0);
 
+	~Instance() {};
 
 	void printAgents() const;
 	string getMapFile() const {return map_fname;};
-    vector<int> getStarts() const {return start_locations;};
-    vector<int> getGoals() const {return goal_locations;};
+    vector<Location> getStarts() const {return start_locations;};
+    vector<Location> getGoals() const {return goal_locations;};
 
 
-    inline bool isObstacle(int loc) const { return my_map[loc]; }
-    inline bool validMove(int curr, int next) const
+    bool isObstacle(int loc) const { return my_map[loc]; }
+    bool validMove(int curr, int next) const
     {
         if (next < 0 || next >= map_size)
             return false;
@@ -32,7 +34,7 @@ public:
             return false;
         return getManhattanDistance(curr, next) < 2;
     }
-    list<int> getNeighbors(int curr) const;
+    virtual list<Location> getNeighbors(Location curr);
 
 
     inline int linearizeCoordinate(int row, int col) const { return ( this->num_of_cols * row + col); }
@@ -55,7 +57,7 @@ public:
         return abs(loc1.first - loc2.first) + abs(loc1.second - loc2.second);
     }
 
-	int getDegree(int loc) const
+	virtual int getDegree(int loc)
 	{
 		assert(loc >= 0 && loc < map_size && !my_map[loc]);
 		int degree = 0;
@@ -70,19 +72,40 @@ public:
 		return degree;
 	}
 
+	// used by delay instance -- needed in parent class
+	// to know when using delay instance vs. orig. instance
+	int agent_idx = 0;
+	vector<Path> originalPlan{};
+	int coll_time = -1;
+	Delay* delay_ = nullptr;
+	vector<Path> postDelayPlan{};
+	int numDelays = 0;
+
 	int getDefaultNumberOfAgents() const { return num_of_agents; }
 	string getInstanceName() const { return agent_fname; }
     void savePaths(const string & file_name, const vector<Path*>& paths) const;
-    bool validateSolution(const vector<Path*>& paths, int sum_of_costs, int num_of_colliding_pairs) const;
-private:
+    void savePaths(const string & file_name, const vector<Path> paths) const;
+    bool validateSolution(const vector<Path*>& paths, int sum_of_costs, int num_of_colliding_pairs);
+
+    bool isConnected(Location start, Location goal); // run BFS to find a path between start and goal, return true if a path exists.
+
+    void updateStartLocations(vector<Location> new_starts)
+    {
+    	for (int i = 0; i < new_starts.size(); i++)
+    	{
+    		start_locations[i].location = new_starts[i].location;
+    		start_locations[i].index = -1;
+    	}
+    }
+protected:
 	  // int moves_offset[MOVE_COUNT];
 	  vector<bool> my_map;
 	  string map_fname;
 	  string agent_fname;
 
 	  int num_of_agents;
-	  vector<int> start_locations;
-	  vector<int> goal_locations;
+	  vector<Location> start_locations;
+	  vector<Location> goal_locations;
 
 	  bool nathan_benchmark = true;
 	  bool loadMap();
@@ -96,9 +119,8 @@ private:
 	  void generateConnectedRandomGrid(int rows, int cols, int obstacles); // initialize new [rows x cols] map with random obstacles
 	  void generateRandomAgents(int warehouse_width);
 	  bool addObstacle(int obstacle); // add this obsatcle only if the map is still connected
-	  bool isConnected(int start, int goal); // run BFS to find a path between start and goal, return true if a path exists.
 
-	  int randomWalk(int loc, int steps) const;
+	  int randomWalk(Location loc, int steps);
 
 	  // Class  SingleAgentSolver can access private members of Node 
 	  friend class SingleAgentSolver;

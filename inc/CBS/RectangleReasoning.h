@@ -9,14 +9,14 @@ public:
 	//rectangle_strategy strategy;
 	double accumulated_runtime = 0;
 
-	RectangleReasoning(const Instance& instance) : instance(instance) {}
+	RectangleReasoning(const Instance *instance) : instance(instance) {}
 
 	shared_ptr<Conflict> run(const vector<Path*>& paths, int timestep, 
 		int a1, int a2, const MDD* mdd1, const MDD* mdd2);
 
 
 private:
-	const Instance& instance;
+	const Instance *instance;
 	shared_ptr<Conflict> findRectangleConflictByRM(const vector<Path*>& paths, int timestep,
 		int a1, int a2, const MDD* mdd1, const MDD* mdd2);
 	shared_ptr<Conflict> findRectangleConflictByGR(const vector<Path*>& paths, int timestep,
