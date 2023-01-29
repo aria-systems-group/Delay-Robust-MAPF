@@ -7,6 +7,7 @@
 #include "common.h"
 #include "LNS.h"
 #include "CBS.h"
+#include "AnytimeEECBS.h"
 #include <unordered_map>
 
 namespace po = boost::program_options;
@@ -64,10 +65,14 @@ void write_csv(const string& file_name, const std::unordered_map<std::string, st
 std::unordered_map<std::string, std::string> runExperiment_1(const po::variables_map vm);
 std::unordered_map<std::string, std::string> runExperiment_2(const po::variables_map vm);
 std::unordered_map<std::string, std::string> runExperiment_3(const po::variables_map vm);
+std::unordered_map<std::string, std::string> runExperiment_4(const po::variables_map vm);
+
 
 // calculate initial solution to problem using original graph (OG)
 void calcInitialSolution_LNS(const po::variables_map vm, std::unordered_map<std::string, std::string> &results, PlannerData &data);
 void calcInitialSolution_CBS(const po::variables_map vm, std::unordered_map<std::string, std::string> &results, PlannerData &data);
+void calcInitialSolution_EECBS(const po::variables_map vm, std::unordered_map<std::string, std::string> &results, PlannerData &data);
+
 
 // calculate a delay that causes a collision
 DelayInstance* calcDelay(const po::variables_map vm, std::unordered_map<std::string, std::string> &results, PlannerData &data);
@@ -81,6 +86,8 @@ void calcReplan_CBS_OG(Instance* replan_instance, const po::variables_map vm, st
 void calcReplan_CBS_CG(DelayInstance* delay_instance, const po::variables_map vm, std::unordered_map<std::string, std::string> &results, PlannerData &data);
 
 void calcReplan_CBS_ICG(DelayInstance* delay_instance, const po::variables_map vm, std::unordered_map<std::string, std::string> &results, PlannerData &data);
+
+void calcReplan_LNS_SIPP_ICG(DelayInstance* delay_instance, const po::variables_map vm, std::unordered_map<std::string, std::string> &results, PlannerData &data);
 
 // void calcNewPlan_LNS_SIPP_igp(DelayInstance* delay_instance, const po::variables_map vm, PlannerStats& statistics, PlannerData& data);
 

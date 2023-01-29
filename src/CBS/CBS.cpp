@@ -1549,7 +1549,7 @@ CBS::CBS(Instance *instance, bool sipp, int screen) :
 //generate random permuattion of agent indices
 vector<int> CBS::shuffleAgents() const
 {
-	std::cout << "I am inside shuffleAgents" << std::endl;
+	// std::cout << "I am inside shuffleAgents" << std::endl;
 	vector<int> agents(num_of_agents);
 	for (int i = 0; i < num_of_agents; i++)
 	{

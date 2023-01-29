@@ -27,6 +27,78 @@ string random_string()
      return str.substr(0, 20);    // assumes 20 < number of characters in str         
 }
 
+std::unordered_map<std::string, std::string> runExperiment_4(const po::variables_map vm)
+{
+    // initialize the results directory
+    int dummy_var = std::numeric_limits<int>::min();
+    std::unordered_map<std::string, std::string> results {
+        {"Example-ID",                                                                        ""},
+        {"Num-Agents",                                                 std::to_string(dummy_var)},
+        {"initial-runtime",                                            std::to_string(dummy_var)},
+        {"initial-soc",                                                std::to_string(dummy_var)},
+        // replan w/ LNS-SIPP on OG
+        {"replan-LNS-SIPP-OG-runtime",                                 std::to_string(dummy_var)},
+        {"replan-LNS-SIPP-OG-soc",                                     std::to_string(dummy_var)},
+        // replan w/ LNS-SIPP on ICG
+        {"replan-LNS-SIPP-ICG-runtime",                                std::to_string(dummy_var)},
+        {"replan-LNS-SIPP-ICG-soc",                                    std::to_string(dummy_var)},
+        {"replan-LNS-SIPP-ICG-numDelays",                              std::to_string(dummy_var)},
+        // replan w/ CBS on ICG
+        {"replan-CBS-ICG-runtime",                                     std::to_string(dummy_var)},
+        {"replan-CBS-ICG-soc",                                         std::to_string(dummy_var)},
+        {"replan-CBS-ICG-numDelays",                                   std::to_string(dummy_var)}
+    };
+    
+    // initialize statistics stucture
+    PlannerData dataResults;
+
+    // calculate initial solution with LNS
+    // calcInitialSolution_LNS(vm, results, dataResults);
+    calcInitialSolution_EECBS(vm, results, dataResults);
+    // std::cout << "initial" << std::endl;
+    // std::cout << results["Example-ID"] << std::endl;
+    // std::cout << results["Num-Agents"] << std::endl;
+    // std::cout << results["initial-runtime"] << std::endl;
+    // std::cout << results["initial-soc"] << std::endl;
+
+    // if initial plan was successful, then continue with replanning
+    if (results["Example-ID"] != "")
+    {
+        // calculate the delay and create delay instance
+        DelayInstance* delay_instance = calcDelay(vm, results, dataResults);
+
+        // change start locations for replanning on OG
+        dataResults.original_instance->updateStartLocations(delay_instance->getStarts());
+
+        // update delay for replanning on OG b/c its needed for soc calc
+        dataResults.original_instance->delay_ = delay_instance->delay_;
+
+        // activate ICG
+        delay_instance->activateImprovement();
+
+        // replan w/ LNS-SIPP on OG
+        calcReplan_LNS_SIPP_OG(dataResults.original_instance, vm, results, dataResults);
+        // std::cout << "replan LNS OG" << std::endl;
+        // std::cout << results["replan-LNS-SIPP-OG-runtime"] << std::endl;
+        // std::cout << results["replan-LNS-SIPP-OG-soc"] << std::endl;
+
+        // replan w/ LNS-SIPP on ICG
+        calcReplan_LNS_SIPP_ICG(delay_instance, vm, results, dataResults);
+        // std::cout << "replan LNS-SIPP ICG" << std::endl;
+        // std::cout << results["replan-LNS-SIPP-ICG-runtime"] << std::endl;
+        // std::cout << results["replan-LNS-SIPP-ICG-soc"] << std::endl;
+        // std::cout << results["replan-LNS-SIPP-ICG-numDelays"] << std::endl;
+
+        // replan w/ CBS on ICG
+        calcReplan_CBS_ICG(delay_instance, vm, results, dataResults);
+        // std::cout << "replan CBS ICG" << std::endl;
+        // std::cout << results["replan-CBS-ICG-runtime"] << std::endl;
+        // std::cout << results["replan-CBS-ICG-soc"] << std::endl;
+        // std::cout << results["replan-CBS-ICG-numDelays"] << std::endl;
+    }
+    return results;
+}
+
 std::unordered_map<std::string, std::string> runExperiment_3(const po::variables_map vm)
 {
     // initialize the results directory
@@ -310,6 +382,61 @@ void calcInitialSolution_LNS(const po::variables_map vm, std::unordered_map<std:
         results["initial-soc"] = std::to_string(lns.iteration_stats.back().sum_of_costs);
     }
     return;
+}
+
+void calcInitialSolution_EECBS(const po::variables_map vm, std::unordered_map<std::string, std::string> &results, PlannerData &data)
+{
+    // set-up LNS (possibly needed later)
+    PIBTPPS_option pipp_options;
+    pipp_options.windowSize = vm["pibtWindow"].as<int>();
+    pipp_options.winPIBTSoft = vm["winPibtSoftmode"].as<bool>();
+
+    data.pipp_options = pipp_options;
+
+    // initialize traditional instance object
+    Instance* instance = new Instance(vm["map"].as<string>(), vm["agents"].as<string>(),
+        vm["agentNum"].as<int>());
+
+    data.original_instance = instance;
+
+    // save instance-related data
+    results["Num-Agents"] = std::to_string(instance->getDefaultNumberOfAgents());
+
+    AnytimeEECBS a_eecbs(instance, vm["cutoffTime"].as<double>(), vm["screen"].as<int>());
+
+    a_eecbs.run();
+
+    // save computation time
+    results["initial-runtime"] = std::to_string(a_eecbs.runtime);
+
+    if (a_eecbs.validateSolution())
+    {
+        // create the results directory
+        results["Example-ID"] = random_string();
+        string random_dir_str = "Results/" + results["Example-ID"] + "/";
+        data.local_path = random_dir_str; // Is this assignment safe?
+        fs::create_directories(data.local_path);
+
+        // save initial plan to directory and shared data
+        ofstream myfile;
+        myfile.open (string(data.local_path) + "initial_solution.txt");
+        for (int a = 0; a < a_eecbs.solution.size(); a++)
+        {
+            myfile << "Agent: " << a << std::endl;
+            Path a_path;
+            for (int i = 0; i < a_eecbs.solution[a].size(); i++) // const auto entry : agent.path
+            {
+                auto entry = a_eecbs.solution[a][i];
+                myfile << i << " " <<
+                instance->getRowCoordinate(entry.Loc.location) << " " << 
+                instance->getColCoordinate(entry.Loc.location) << std::endl;
+                a_path.emplace_back(entry);
+            }
+            data.initial_plan.push_back(a_path);
+        }
+        myfile.close();
+        results["initial-soc"] = std::to_string(a_eecbs.iteration_stats.back().sum_of_costs);
+    }
 }
 
 void calcInitialSolution_CBS(const po::variables_map vm, std::unordered_map<std::string, std::string> &results, PlannerData &data)
@@ -610,6 +737,56 @@ void calcReplan_CBS_CG(DelayInstance* delay_instance, const po::variables_map vm
         }
         results["replan-CBS-CG-soc"] = std::to_string(cbs.solution_cost);
         results["replan-CBS-CG-numDelays"] = std::to_string(delay_instance->numDelays);
+        myfile.close();
+    }
+}
+
+void calcReplan_LNS_SIPP_ICG(DelayInstance* delay_instance, const po::variables_map vm, std::unordered_map<std::string, std::string> &results, PlannerData &data)
+{
+    delay_instance->numDelays = 0;
+    // initialize LNS object
+    LNS lns(delay_instance, vm["cutoffTime"].as<double>(),
+                vm["initAlgo"].as<string>(),
+                vm["replanAlgo"].as<string>(),
+                vm["destoryStrategy"].as<string>(),
+                vm["neighborSize"].as<int>(),
+                vm["maxIterations"].as<int>(),
+                vm["initLNS"].as<bool>(),
+                vm["initDestoryStrategy"].as<string>(),
+                true,
+                vm["screen"].as<int>(), data.pipp_options);
+
+    // run LNS
+    bool succ = lns.run();
+
+    // save computation time
+    results["replan-LNS-SIPP-ICG-runtime"] = std::to_string(lns.runtime);
+
+    if (succ)
+    {
+        // make sure solution is correct
+        lns.validateSolution();
+
+        // count delays
+        lns.countInducedDelays(delay_instance->postDelayPlan);
+
+        // save new plan to directory and shared data
+        ofstream myfile;
+        myfile.open (std::string(data.local_path) + "replan-LNS-SIPP-ICG.txt");
+        // int soc = 0; // must compute soc manually for replanning
+        for (const auto &agent : lns.agents)
+        {
+            myfile << "Agent: " << agent.id << std::endl;
+            for (int i = 0; i < agent.path.size(); i++) // const auto entry : agent.path
+            {
+                auto entry = agent.path[i];
+                myfile << i << " " <<
+                delay_instance->getRowCoordinate(entry.Loc.location) << " " << 
+                delay_instance->getColCoordinate(entry.Loc.location) << std::endl;
+            }
+        }
+        results["replan-LNS-SIPP-ICG-soc"] = std::to_string(lns.iteration_stats.back().sum_of_costs);
+        results["replan-LNS-SIPP-ICG-numDelays"] = std::to_string(delay_instance->numDelays);
         myfile.close();
     }
 }

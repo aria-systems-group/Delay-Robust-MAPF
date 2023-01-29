@@ -16,7 +16,7 @@ public:
             instance(instance), time_limit(time_limit), screen(screen) {}
 
     void run();
-    void validateSolution() const;
+    bool validateSolution() const;
     void writeIterStatsToFile(string file_name) const;
     void writeResultToFile(string file_name) const;
     string getSolverName() const { return "AnytimeEECBS"; }

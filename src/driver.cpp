@@ -75,51 +75,6 @@ int main(int argc, char** argv)
         {
             write_csv(vm["output"].as<std::string>(), results);
         }
-
-
-
-
-        // // calculate initial solution with LNS
-        // calcInitialSolution_LNS(vm, statResults, dataResults);
-
-        // // calculate a delay, save it, and return the new instance
-        // DelayInstance* delay_instance = calcDelay(vm, statResults, dataResults);
-
-        // /* *********** Constrained Graph *********** */
-        
-        // // replan using LNS w/ SIPP
-        // calcNewPlan_LNS_SIPP(delay_instance, vm, statResults, dataResults);
-
-        // // replan using LNS w/o SIPP
-        // calcNewPlan_LNS_noSIPP(delay_instance, vm, statResults, dataResults);
-
-        // // replan using CBS
-        // calcNewPlan_CBS(delay_instance, vm, statResults, dataResults);
-        
-        // /* *********** End Constrained Graph *********** */
-
-        // delay_instance->activateImprovement();
-
-        // // // debug: print delayed plan
-        // // for (int i = 0; i < delay_instance->postDelayPlan.size(); i++)
-        // // {
-        // //     std::cout << "Agent " << i << std::endl;
-        // //     for (auto pe : delay_instance->postDelayPlan[i])
-        // //         std::cout << "      " << pe.Loc.index << " " << pe.Loc.location << " -- " << delay_instance->getRowCoordinate(pe.Loc.location) << "," << delay_instance->getColCoordinate(pe.Loc.location) << std::endl;
-        // // }
-
-
-        // /* *********** Improved Constrained Graph *********** */
-
-        // // replan using CBS
-        // calcNewPlan_CBS_icg(delay_instance, vm, statResults, dataResults);
-
-        // calcNewPlan_LNS_SIPP_igp(delay_instance, vm, statResults, dataResults);
-
-        // calcNewPlan_LNS_noSIPP_igp(delay_instance, vm, statResults, dataResults);
-
-        // /* *********** End Improved Constrained Graph *********** */
-
     }
     else if (vm["solver"].as<string>() == "CBS")
     {
@@ -137,32 +92,13 @@ int main(int argc, char** argv)
             write_csv(vm["output"].as<std::string>(), results);
         }
     }
-
-    // // save data to a map for csv export
-    // std::cout << "saving to " << dataResults.example_id << std::endl;
-    // results[0].second = dataResults.example_id;
-    // results[1].second = std::to_string(statResults.original_plan_comp_time);
-    // results[2].second = std::to_string(dataResults.num_agents);
-    
-    // results[3].second = std::to_string(statResults.lns_sipp_replan_comp_time);
-    // results[4].second = std::to_string(statResults.lns_sipp_replan_delay_count);
-    
-    // results[5].second = std::to_string(statResults.lns_no_sipp_replan_comp_time);
-    // results[6].second = std::to_string(statResults.lns_no_sipp_replan_delay_count);
-
-    // results[7].second = std::to_string(statResults.cbs_replan_comp_time);
-    // results[8].second = std::to_string(statResults.cbs_replan_delay_count);
-
-    // results[9].second = std::to_string(statResults.cbs_replan_icg_comp_time);
-    // results[10].second = std::to_string(statResults.cbs_replan_icg_delay_count);
-
-    // results[11].second = std::to_string(statResults.lns_sipp_replan_igp_comp_time);
-    // results[12].second = std::to_string(statResults.lns_sipp_replan_igp_delay_count);
-
-    // results[13].second = std::to_string(statResults.lns_nosipp_replan_igp_comp_time);
-    // results[14].second = std::to_string(statResults.lns_nosipp_replan_igp_delay_count);
-
-    // // export results to file
-    // write_csv("delay_results", results);
+    else if ((vm["solver"].as<string>() == "LNSvCBS"))
+    {
+        results = runExperiment_4(vm);
+        if (results["Example-ID"] != "")
+        {
+            write_csv(vm["output"].as<std::string>(), results);
+        }
+    }
 	return 0;
 }

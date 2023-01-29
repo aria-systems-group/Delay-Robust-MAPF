@@ -67,10 +67,10 @@ void AnytimeEECBS::run()
 }
 
 
-void AnytimeEECBS::validateSolution() const
+bool AnytimeEECBS::validateSolution() const
 {
     if (solution.empty())
-        return;
+        return false;
     int N = instance->getDefaultNumberOfAgents();
     for (int i = 0; i < N; i++)
     {
@@ -85,7 +85,7 @@ void AnytimeEECBS::validateSolution() const
                 {
                     cerr << "Find a vertex conflict between agents " << a1 << " and " << a2 <<
                          " at location " << solution[a1][t].Loc.location << " at timestep " << t << endl;
-                    exit(-1);
+                    return false;
                 }
                 else if (solution[a1][t].Loc.location == solution[a2][t - 1].Loc.location &&
                          solution[a1][t - 1].Loc.location == solution[a2][t].Loc.location) // edge conflict
@@ -93,7 +93,7 @@ void AnytimeEECBS::validateSolution() const
                     cerr << "Find an edge conflict between agents " << a1 << " and " << a2 <<
                          " at edge (" << solution[a1][t - 1].Loc.location << "," << solution[a1][t].Loc.location <<
                          ") at timestep " << t << endl;
-                    exit(-1);
+                    return false;
                 }
             }
             int target = solution[a1].back().Loc.location;
@@ -103,11 +103,12 @@ void AnytimeEECBS::validateSolution() const
                 {
                     cerr << "Find a target conflict where agent " << a2 << " traverses agent " << a1 <<
                          "'s target location " << target << " at timestep " << t << endl;
-                    exit(-1);
+                    return false;
                 }
             }
         }
     }
+    return true;
 }
 
 void AnytimeEECBS::writeIterStatsToFile(string file_name) const
