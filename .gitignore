@@ -6,8 +6,8 @@ exp*
 debug
 
 # ignore experiment bash scripts, result files, map/scen files, and Mac Finder junk
-*.map
-*.scen
+# *.map
+# *.scen
 *.sh
 *.csv
 *.DS_Store
