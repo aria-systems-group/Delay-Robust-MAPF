@@ -15,4 +15,5 @@ Makefile
 Results/*
 visTools/*
 CMakeFiles/*
+CMakeCache.txt
 lns
