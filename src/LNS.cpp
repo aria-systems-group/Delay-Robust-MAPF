@@ -126,7 +126,9 @@ bool LNS::run()
                     neighbor.agents[i] = i;
                 if (neighbor.agents.size() > neighbor_size)
                 {
-                    std::random_shuffle(neighbor.agents.begin(), neighbor.agents.end());
+                    std::random_device rd;
+                    std::mt19937 g(rd());
+                    std::shuffle(neighbor.agents.begin(), neighbor.agents.end(), g);
                     neighbor.agents.resize(neighbor_size);
                 }
                 succ = true;
@@ -357,7 +359,9 @@ bool LNS::runCBS()
 bool LNS::runPP()
 {
     auto shuffled_agents = neighbor.agents;
-    std::random_shuffle(shuffled_agents.begin(), shuffled_agents.end());
+    std::random_device rd;
+    std::mt19937 g(rd());
+    std::shuffle(shuffled_agents.begin(), shuffled_agents.end(), g);
     if (screen >= 2) {
         for (auto id : shuffled_agents)
             cout << id << "(" << agents[id].path_planner->my_heuristic[agents[id].path_planner->start_location.location] <<
@@ -424,7 +428,9 @@ bool LNS::runPP()
 }
 bool LNS::runPPS(){
     auto shuffled_agents = neighbor.agents;
-    std::random_shuffle(shuffled_agents.begin(), shuffled_agents.end());
+    std::random_device rd;
+    std::mt19937 g(rd());
+    std::shuffle(shuffled_agents.begin(), shuffled_agents.end(), g);
 
     MAPF P = preparePIBTProblem(shuffled_agents);
     P.setTimestepLimit(pipp_option.timestepLimit);
@@ -441,7 +447,9 @@ bool LNS::runPPS(){
 }
 bool LNS::runPIBT(){
     auto shuffled_agents = neighbor.agents;
-     std::random_shuffle(shuffled_agents.begin(), shuffled_agents.end());
+    std::random_device rd;
+    std::mt19937 g(rd());
+    std::shuffle(shuffled_agents.begin(), shuffled_agents.end(), g);
 
     MAPF P = preparePIBTProblem(shuffled_agents);
 
@@ -456,7 +464,9 @@ bool LNS::runPIBT(){
 }
 bool LNS::runWinPIBT(){
     auto shuffled_agents = neighbor.agents;
-    std::random_shuffle(shuffled_agents.begin(), shuffled_agents.end());
+    std::random_device rd;
+    std::mt19937 g(rd());
+    std::shuffle(shuffled_agents.begin(), shuffled_agents.end(), g);
 
     MAPF P = preparePIBTProblem(shuffled_agents);
     P.setTimestepLimit(pipp_option.timestepLimit);
@@ -596,7 +606,9 @@ bool LNS::generateNeighborByIntersection()
     neighbor.agents.assign(neighbors_set.begin(), neighbors_set.end());
     if (neighbor.agents.size() > neighbor_size)
     {
-        std::random_shuffle(neighbor.agents.begin(), neighbor.agents.end());
+        std::random_device rd;
+        std::mt19937 g(rd());
+        std::shuffle(neighbor.agents.begin(), neighbor.agents.end(), g);
         neighbor.agents.resize(neighbor_size);
     }
     if (screen >= 2)

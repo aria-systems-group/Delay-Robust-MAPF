@@ -290,7 +290,9 @@ bool InitLNS::runPBS()
 bool InitLNS::runPP()
 {
     auto shuffled_agents = neighbor.agents;
-    std::random_shuffle(shuffled_agents.begin(), shuffled_agents.end());
+    std::random_device rd;
+    std::mt19937 g(rd());
+    std::shuffle(shuffled_agents.begin(), shuffled_agents.end(), g);
     if (screen >= 2) {
         cout<<"Neighbors_set: ";
         for (auto id : shuffled_agents)
@@ -376,7 +378,9 @@ bool InitLNS::getInitialSolution()
         }
     }
     int remaining_agents = (int)neighbor.agents.size();
-    std::random_shuffle(neighbor.agents.begin(), neighbor.agents.end());
+    std::random_device rd;
+    std::mt19937 g(rd());
+    std::shuffle(neighbor.agents.begin(), neighbor.agents.end(), g);
     ConstraintTable constraint_table((*instance).num_of_cols, (*instance).map_size, nullptr, &path_table);
     set<pair<int, int>> colliding_pairs;
     for (auto id : neighbor.agents)
@@ -627,13 +631,17 @@ bool InitLNS::generateNeighborByTarget()
         if (A_start.empty()){
             vector<int> shuffled_agents;
             shuffled_agents.assign(A_target.begin(),A_target.end());
-            std::random_shuffle(shuffled_agents.begin(), shuffled_agents.end());
+            std::random_device rd;
+            std::mt19937 g(rd());
+            std::shuffle(shuffled_agents.begin(), shuffled_agents.end(), g);
             neighbors_set.insert(shuffled_agents.begin(), shuffled_agents.begin() + neighbor_size-1);
         }
         else if (A_target.size() >= neighbor_size){
             vector<int> shuffled_agents;
             shuffled_agents.assign(A_target.begin(),A_target.end());
-            std::random_shuffle(shuffled_agents.begin(), shuffled_agents.end());
+            std::random_device rd;
+            std::mt19937 g(rd());
+            std::shuffle(shuffled_agents.begin(), shuffled_agents.end(), g);
             neighbors_set.insert(shuffled_agents.begin(), shuffled_agents.begin() + neighbor_size-2);
 
             neighbors_set.insert(A_start.begin()->second);
