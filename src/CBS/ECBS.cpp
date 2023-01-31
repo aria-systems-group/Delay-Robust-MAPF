@@ -299,7 +299,6 @@ bool ECBS::generateRoot()
 	for (auto i : agents)
 	{
 		paths_found_initially[i] = search_engines[i]->findSuboptimalPath(*root, initial_constraints[i], paths, i, 0, suboptimality);
-		// std::cout << "line 293" << std::endl;
 		if (paths_found_initially[i].first.empty())
 		{
 			cerr << "No path exists for agent " << i << endl;
@@ -319,6 +318,7 @@ bool ECBS::generateRoot()
 		root->makespan = max(root->makespan, paths[i]->size() - 1);
 		root->g_val += min_f_vals[i];
 		root->sum_of_costs += (int)paths[i]->size() - 1;
+		// std::cout << i << std::endl;
 		// std::cout << "root SOC " << root->sum_of_costs << " min_f_vals[i] " << min_f_vals[i] << 
 			// " g_val " << root->g_val << std::endl;
 	}

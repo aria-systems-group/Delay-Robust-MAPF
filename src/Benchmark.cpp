@@ -86,14 +86,14 @@ std::unordered_map<std::string, std::string> runExperiment_5(const po::variables
         dataResults.original_instance->updateStartLocations(delay_instance->getStarts());
         dataResults.original_instance->delay_ = delay_instance->delay_;
 
-        // replan w/ available planners on OG
-        calcReplan_EECBS_OG(dataResults.original_instance, vm, results, dataResults);
-        calcReplan_LNS_SIPP_OG(dataResults.original_instance, vm, results, dataResults);
+        // // replan w/ available planners on OG
+        // calcReplan_EECBS_OG(dataResults.original_instance, vm, results, dataResults);
+        // calcReplan_LNS_SIPP_OG(dataResults.original_instance, vm, results, dataResults);
 
-        // replan w/ available planners on CG
-        calcReplan_LNS_SIPP_CG(delay_instance, vm, results, dataResults);
-        calcReplan_CBS_CG(delay_instance, vm, results, dataResults);
-        calcReplan_EECBS_CG(delay_instance, vm, results, dataResults);
+        // // replan w/ available planners on CG
+        // calcReplan_LNS_SIPP_CG(delay_instance, vm, results, dataResults);
+        // calcReplan_CBS_CG(delay_instance, vm, results, dataResults);
+        // calcReplan_EECBS_CG(delay_instance, vm, results, dataResults);
 
         // activate ICG
         delay_instance->activateImprovement();
@@ -489,6 +489,9 @@ void calcInitialSolution_EECBS(const po::variables_map vm, std::unordered_map<st
     // save computation time
     results["initial-runtime"] = std::to_string(a_eecbs.runtime);
 
+    if (a_eecbs.iteration_stats.empty())
+        return;
+
     if (a_eecbs.validateSolution())
     {
         // create the results directory
@@ -661,7 +664,7 @@ void calcReplan_EECBS_OG(Instance* replan_instance, const po::variables_map vm, 
 void calcReplan_EECBS_CG(DelayInstance* delay_instance, const po::variables_map vm, std::unordered_map<std::string, std::string> &results, PlannerData &data)
 {
     AnytimeEECBS a_eecbs(delay_instance, vm["cutoffTime"].as<double>(), vm["screen"].as<int>());
-
+    a_eecbs.replanning = true;
     a_eecbs.run();
 
     // save computation time
@@ -708,10 +711,15 @@ void calcReplan_EECBS_CG(DelayInstance* delay_instance, const po::variables_map 
 void calcReplan_EECBS_ICG(DelayInstance* delay_instance, const po::variables_map vm, std::unordered_map<std::string, std::string> &results, PlannerData &data)
 {
     AnytimeEECBS a_eecbs(delay_instance, vm["cutoffTime"].as<double>(), vm["screen"].as<int>());
-
+    // a_eecbs.replanning  = true;
     a_eecbs.run();
 
+    
+    if (a_eecbs.iteration_stats.empty())
+        return;
     // save computation time
+    std::cout << a_eecbs.iteration_stats.front().runtime << std::endl;
+    std::cout << a_eecbs.iteration_stats.back().runtime << std::endl;
     results["replan-EECBS-ICG-first-runtime"] = std::to_string(a_eecbs.iteration_stats.front().runtime);
     results["replan-EECBS-ICG-best-runtime"] = std::to_string(a_eecbs.iteration_stats.back().runtime);
     if (std::stod(results["replan-CBS-ICG-runtime"]) > std::stod(results["replan-EECBS-ICG-first-runtime"]))

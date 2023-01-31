@@ -7,17 +7,35 @@ void AnytimeEECBS::run()
     int num_of_agents = instance->getDefaultNumberOfAgents();
     bool improvements = true;
     ECBS ecbs(instance, false, screen);
-    ecbs.setPrioritizeConflicts(true);
-    ecbs.setDisjointSplitting(false);
-    ecbs.setBypass(true);
-    ecbs.setRectangleReasoning(true);
-    ecbs.setCorridorReasoning(true);
-    ecbs.setHeuristicType(heuristics_type::WDG, heuristics_type::GLOBAL);
-    ecbs.setTargetReasoning(true);
-    ecbs.setMutexReasoning(false);
-    ecbs.setConflictSelectionRule(conflict_selection::EARLIEST);
-    ecbs.setNodeSelectionRule(node_selection::NODE_CONFLICTPAIRS);
-    ecbs.setSavingStats(false);
+    if (!replanning)
+    {
+        ecbs.setPrioritizeConflicts(true);
+        ecbs.setDisjointSplitting(false);
+        ecbs.setBypass(true);
+        ecbs.setRectangleReasoning(true);
+        ecbs.setCorridorReasoning(true);
+        // ecbs.setHeuristicType(heuristics_type::WDG, heuristics_type::GLOBAL);
+        ecbs.setHeuristicType(improvements? heuristics_type::WDG : heuristics_type::ZERO, heuristics_type::ZERO);
+        ecbs.setTargetReasoning(true);
+        ecbs.setMutexReasoning(false);
+        ecbs.setConflictSelectionRule(conflict_selection::EARLIEST);
+        ecbs.setNodeSelectionRule(node_selection::NODE_CONFLICTPAIRS);
+        ecbs.setSavingStats(false);
+    }
+    else
+    {
+        ecbs.setPrioritizeConflicts(improvements);
+        ecbs.setDisjointSplitting(false);
+        ecbs.setBypass(improvements);
+        ecbs.setRectangleReasoning(improvements);
+        ecbs.setCorridorReasoning(false);
+        ecbs.setHeuristicType(improvements? heuristics_type::WDG : heuristics_type::ZERO, heuristics_type::ZERO);
+        ecbs.setTargetReasoning(improvements);
+        ecbs.setMutexReasoning(false);
+        ecbs.setConflictSelectionRule(conflict_selection::EARLIEST);
+        ecbs.setNodeSelectionRule(node_selection::NODE_CONFLICTPAIRS); //
+        ecbs.setSavingStats(false);
+    }
     preprocessing_time = ecbs.runtime_preprocessing;
     sum_of_distances = 0;
     for (int i = 0; i < num_of_agents; i++)

@@ -12,6 +12,7 @@ public:
     int sum_of_costs = MAX_COST;
     int sum_of_costs_lowerbound = 0;
     int sum_of_distances = -1;
+    bool replanning = false;
     AnytimeEECBS(Instance *instance, double time_limit, int screen) :
             instance(instance), time_limit(time_limit), screen(screen) {}
 
