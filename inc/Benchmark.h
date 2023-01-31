@@ -56,9 +56,6 @@ string random_string();
 unsigned long mix(unsigned long a, unsigned long b, unsigned long c);
 
 // write results from results_map to file_name.csv
-// found from: // https://www.gormanalysis.com/blog/reading-and-writing-csv-files-with-cpp/
-void write_csv(const string& file_name, const vector<pair<std::string, std::string>>& results_map);
-
 void write_csv(const string& file_name, const std::unordered_map<std::string, std::string> &results);
 
 // main experiment functions
@@ -66,30 +63,23 @@ std::unordered_map<std::string, std::string> runExperiment_1(const po::variables
 std::unordered_map<std::string, std::string> runExperiment_2(const po::variables_map vm);
 std::unordered_map<std::string, std::string> runExperiment_3(const po::variables_map vm);
 std::unordered_map<std::string, std::string> runExperiment_4(const po::variables_map vm);
-
+std::unordered_map<std::string, std::string> runExperiment_5(const po::variables_map vm);
 
 // calculate initial solution to problem using original graph (OG)
 void calcInitialSolution_LNS(const po::variables_map vm, std::unordered_map<std::string, std::string> &results, PlannerData &data);
 void calcInitialSolution_CBS(const po::variables_map vm, std::unordered_map<std::string, std::string> &results, PlannerData &data);
 void calcInitialSolution_EECBS(const po::variables_map vm, std::unordered_map<std::string, std::string> &results, PlannerData &data);
 
-
 // calculate a delay that causes a collision
 DelayInstance* calcDelay(const po::variables_map vm, std::unordered_map<std::string, std::string> &results, PlannerData &data);
 
+// replanning functions
+void calcReplan_EECBS_OG(Instance* replan_instance, const po::variables_map vm, std::unordered_map<std::string, std::string> &results, PlannerData &data);
+void calcReplan_EECBS_CG(DelayInstance* delay_instance, const po::variables_map vm, std::unordered_map<std::string, std::string> &results, PlannerData &data);
+void calcReplan_EECBS_ICG(DelayInstance* delay_instance, const po::variables_map vm, std::unordered_map<std::string, std::string> &results, PlannerData &data);
 void calcReplan_LNS_SIPP_OG(Instance* replan_instance, const po::variables_map vm, std::unordered_map<std::string, std::string> &results, PlannerData &data);
-
 void calcReplan_LNS_SIPP_CG(DelayInstance* delay_instance, const po::variables_map vm, std::unordered_map<std::string, std::string> &results, PlannerData &data);
-
-void calcReplan_CBS_OG(Instance* replan_instance, const po::variables_map vm, std::unordered_map<std::string, std::string> &results, PlannerData &data);
-
-void calcReplan_CBS_CG(DelayInstance* delay_instance, const po::variables_map vm, std::unordered_map<std::string, std::string> &results, PlannerData &data);
-
-void calcReplan_CBS_ICG(DelayInstance* delay_instance, const po::variables_map vm, std::unordered_map<std::string, std::string> &results, PlannerData &data);
-
 void calcReplan_LNS_SIPP_ICG(DelayInstance* delay_instance, const po::variables_map vm, std::unordered_map<std::string, std::string> &results, PlannerData &data);
-
-// void calcNewPlan_LNS_SIPP_igp(DelayInstance* delay_instance, const po::variables_map vm, PlannerStats& statistics, PlannerData& data);
-
-// void calcNewPlan_LNS_noSIPP_igp(DelayInstance* delay_instance, const po::variables_map vm, PlannerStats& statistics, PlannerData& data);
-
+void calcReplan_CBS_OG(Instance* replan_instance, const po::variables_map vm, std::unordered_map<std::string, std::string> &results, PlannerData &data);
+void calcReplan_CBS_CG(DelayInstance* delay_instance, const po::variables_map vm, std::unordered_map<std::string, std::string> &results, PlannerData &data);
+void calcReplan_CBS_ICG(DelayInstance* delay_instance, const po::variables_map vm, std::unordered_map<std::string, std::string> &results, PlannerData &data);

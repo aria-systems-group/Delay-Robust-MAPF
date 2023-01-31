@@ -100,5 +100,13 @@ int main(int argc, char** argv)
             write_csv(vm["output"].as<std::string>(), results);
         }
     }
+    else if ((vm["solver"].as<string>() == "runAll"))
+    {
+        results = runExperiment_5(vm);
+        if (results["Example-ID"] != "")
+        {
+            write_csv(vm["output"].as<std::string>(), results);
+        }
+    }
 	return 0;
 }
