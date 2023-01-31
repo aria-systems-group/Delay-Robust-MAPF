@@ -86,14 +86,14 @@ std::unordered_map<std::string, std::string> runExperiment_5(const po::variables
         dataResults.original_instance->updateStartLocations(delay_instance->getStarts());
         dataResults.original_instance->delay_ = delay_instance->delay_;
 
-        // // replan w/ available planners on OG
-        // calcReplan_EECBS_OG(dataResults.original_instance, vm, results, dataResults);
-        // calcReplan_LNS_SIPP_OG(dataResults.original_instance, vm, results, dataResults);
+        // replan w/ available planners on OG
+        calcReplan_EECBS_OG(dataResults.original_instance, vm, results, dataResults);
+        calcReplan_LNS_SIPP_OG(dataResults.original_instance, vm, results, dataResults);
 
-        // // replan w/ available planners on CG
-        // calcReplan_LNS_SIPP_CG(delay_instance, vm, results, dataResults);
-        // calcReplan_CBS_CG(delay_instance, vm, results, dataResults);
-        // calcReplan_EECBS_CG(delay_instance, vm, results, dataResults);
+        // replan w/ available planners on CG
+        calcReplan_LNS_SIPP_CG(delay_instance, vm, results, dataResults);
+        calcReplan_CBS_CG(delay_instance, vm, results, dataResults);
+        calcReplan_EECBS_CG(delay_instance, vm, results, dataResults);
 
         // activate ICG
         delay_instance->activateImprovement();
