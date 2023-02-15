@@ -27,6 +27,109 @@ string random_string()
      return str.substr(0, 20);    // assumes 20 < number of characters in str         
 }
 
+std::unordered_map<std::string, std::string> runExperiment_6(const po::variables_map vm)
+{
+    int dummy_var = std::numeric_limits<int>::min();
+    std::unordered_map<std::string, std::string> results {
+        // meta data
+        {"Example-ID",                                                                        ""},
+        {"Num-Agents",                                                 std::to_string(dummy_var)},
+        // initial solution data
+        {"initial-newAlg-runtime",                                     std::to_string(dummy_var)},
+        {"initial-newAlg-soc",                                         std::to_string(dummy_var)},
+        {"initial-EECBS-runtime",                                      std::to_string(dummy_var)},
+        {"initial-EECBS-soc",                                          std::to_string(dummy_var)},
+        /* replanning on OG */
+        {"replan-LNS-SIPP-OG-runtime",                                 std::to_string(dummy_var)},
+        {"replan-LNS-SIPP-OG-soc",                                     std::to_string(dummy_var)},
+        {"replan-EECBS-OG-first-runtime",                              std::to_string(dummy_var)},
+        {"replan-EECBS-OG-first-soc",                                  std::to_string(dummy_var)},
+        {"replan-EECBS-OG-best-runtime",                               std::to_string(dummy_var)},
+        {"replan-EECBS-OG-best-soc",                                   std::to_string(dummy_var)},
+        {"replan-CBS-OG-runtime",                                      std::to_string(dummy_var)},
+        {"replan-CBS-OG-soc",                                          std::to_string(dummy_var)},
+        /* replanning on CG */
+        {"replan-LNS-SIPP-CG-runtime",                                 std::to_string(dummy_var)},
+        {"replan-LNS-SIPP-CG-soc",                                     std::to_string(dummy_var)},
+        {"replan-CBS-CG-runtime",                                      std::to_string(dummy_var)},
+        {"replan-CBS-CG-soc",                                          std::to_string(dummy_var)},
+        {"replan-EECBS-CG-first-runtime",                              std::to_string(dummy_var)},
+        {"replan-EECBS-CG-first-soc",                                  std::to_string(dummy_var)},
+        {"replan-EECBS-CG-BBC-runtime",                                std::to_string(dummy_var)},
+        {"replan-EECBS-CG-BBC-soc",                                    std::to_string(dummy_var)},
+        {"replan-EECBS-CG-best-runtime",                               std::to_string(dummy_var)},
+        {"replan-EECBS-CG-best-soc",                                   std::to_string(dummy_var)},
+        /* replanning on ICG */
+        {"replan-LNS-SIPP-ICG-runtime",                                std::to_string(dummy_var)},
+        {"replan-LNS-SIPP-ICG-soc",                                    std::to_string(dummy_var)},
+        {"replan-CBS-ICG-runtime",                                     std::to_string(dummy_var)},
+        {"replan-CBS-ICG-soc",                                         std::to_string(dummy_var)},
+        {"replan-EECBS-ICG-first-runtime",                             std::to_string(dummy_var)},
+        {"replan-EECBS-ICG-first-soc",                                 std::to_string(dummy_var)},
+        {"replan-EECBS-ICG-BBC-runtime",                               std::to_string(dummy_var)},
+        {"replan-EECBS-ICG-BBC-soc",                                   std::to_string(dummy_var)},
+        {"replan-EECBS-ICG-best-runtime",                              std::to_string(dummy_var)},
+        {"replan-EECBS-ICG-best-soc",                                  std::to_string(dummy_var)}
+    };
+
+    // initialize statistics stucture
+    PlannerData dataResults;
+
+    // calculate initial solution with New Algorithm
+    calcInitialSolution_NewAlg(vm, results, dataResults);
+
+    // calculate initial solution with EECBS
+    calcInitialSolution_EECBS(vm, results, dataResults);
+
+    // if initial plan was successful, then continue with replanning
+    if (results["Example-ID"] != "")
+    {
+        /* initialize the new constrained graph instance and update old instance */
+        DelayInstance* delay_instance = calcDelay(vm, results, dataResults);
+        dataResults.original_instance->updateStartLocations(delay_instance->getStarts());
+        dataResults.original_instance->delay_ = delay_instance->delay_;
+        
+        /* Replan on Original Graph */
+        calcReplan_CBS_OG(dataResults.original_instance, vm, results, dataResults);
+        calcReplan_LNS_SIPP_OG(dataResults.original_instance, vm, results, dataResults);
+        calcReplan_EECBS_OG(dataResults.original_instance, vm, results, dataResults);
+
+        /* Replan on Constrained Graph */
+        calcReplan_CBS_CG(delay_instance, vm, results, dataResults);
+        calcReplan_EECBS_CG(delay_instance, vm, results, dataResults);
+        calcReplan_LNS_SIPP_CG(delay_instance, vm, results, dataResults);
+
+        /* Activate improved constrained graph */
+        delay_instance->activateImprovement();
+
+        /* Replan on Improved Constrained Graph */
+        calcReplan_CBS_ICG(delay_instance, vm, results, dataResults);
+        calcReplan_EECBS_ICG(delay_instance, vm, results, dataResults);
+        calcReplan_LNS_SIPP_ICG(delay_instance, vm, results, dataResults);
+    }
+    return results;
+}
+
+std::unordered_map<std::string, std::string> runNewPlanner(const po::variables_map vm)
+{
+    // initialize the results directory
+    int dummy_var = std::numeric_limits<int>::min();
+    std::unordered_map<std::string, std::string> results {
+        {"Example-ID",                                                                        ""},
+        {"Num-Agents",                                                 std::to_string(dummy_var)},
+        {"initial-runtime",                                            std::to_string(dummy_var)},
+        {"initial-soc",                                                std::to_string(dummy_var)}
+    };
+
+    // initialize statistics stucture
+    PlannerData dataResults;
+
+    // calculate initial solution with New Algorithm
+    calcInitialSolution_NewAlg(vm, results, dataResults);
+
+    return results;
+}
+
 std::unordered_map<std::string, std::string> runExperiment_5(const po::variables_map vm)
 {
     // initialize the results directory
@@ -75,7 +178,7 @@ std::unordered_map<std::string, std::string> runExperiment_5(const po::variables
     // initialize statistics stucture
     PlannerData dataResults;
 
-    // calculate initial solution with LNS
+    // calculate initial solution with EECBS
     calcInitialSolution_EECBS(vm, results, dataResults);
 
     // if initial plan was successful, then continue with replanning
@@ -394,6 +497,68 @@ std::unordered_map<std::string, std::string> runExperiment_1(const po::variables
     return results;
 }
 
+void calcInitialSolution_NewAlg(const po::variables_map vm, std::unordered_map<std::string, std::string> &results, PlannerData &data)
+{
+    // set-up LNS (possibly needed later)
+    PIBTPPS_option pipp_options;
+    pipp_options.windowSize = vm["pibtWindow"].as<int>();
+    pipp_options.winPIBTSoft = vm["winPibtSoftmode"].as<bool>();
+
+    data.pipp_options = pipp_options;
+
+    // initialize traditional instance object
+    Instance* instance = new Instance(vm["map"].as<string>(), vm["agents"].as<string>(),
+        vm["agentNum"].as<int>());
+
+    data.original_instance = instance;
+
+    // for (int a=0; a < instance->getDefaultNumberOfAgents(); a++)
+    // {
+    //     std::cout << instance->getStarts()[a].location << std::endl;
+    // }
+
+    // save instance-related data
+    results["Num-Agents"] = std::to_string(instance->getDefaultNumberOfAgents());
+
+    NewAlg newAlgorithm(instance, false, vm["screen"].as<int>());
+
+    newAlgorithm.solve(vm["cutoffTime"].as<double>(), 0, MAX_COST);
+
+    // save computation time
+    results["initial-newAlg-runtime"] = std::to_string(newAlgorithm.runtime);
+
+    if (newAlgorithm.solution_found)
+    {
+        if (data.initial_plan.empty())
+        {
+            // create the results directory
+            results["Example-ID"] = random_string();
+            string random_dir_str = "Results/" + results["Example-ID"] + "/";
+            data.local_path = random_dir_str; // Is this assignment safe?
+            fs::create_directories(data.local_path);
+            // save initial plan to directory and shared data
+            ofstream myfile;
+            myfile.open (string(data.local_path) + "initial_solution.txt");
+            for (int a = 0; a < newAlgorithm.paths.size(); a++)
+            {
+                myfile << "Agent: " << a << std::endl;
+                Path a_path;
+                for (int i = 0; i < newAlgorithm.paths[a]->size(); i++) // const auto entry : agent.path
+                {
+                    auto entry = (*newAlgorithm.paths[a])[i];
+                    myfile << i << " " <<
+                    instance->getRowCoordinate(entry.Loc.location) << " " << 
+                    instance->getColCoordinate(entry.Loc.location) << std::endl;
+                    a_path.emplace_back(entry);
+                }
+                data.initial_plan.push_back(a_path);
+            }
+            myfile.close();
+        }
+        results["initial-newAlg-soc"] = std::to_string(newAlgorithm.solution_cost);
+    }
+}
+
 void calcInitialSolution_LNS(const po::variables_map vm, std::unordered_map<std::string, std::string> &results, PlannerData &data)
 {
     // set-up LNS
@@ -487,7 +652,7 @@ void calcInitialSolution_EECBS(const po::variables_map vm, std::unordered_map<st
     a_eecbs.run();
 
     // save computation time
-    results["initial-runtime"] = std::to_string(a_eecbs.runtime);
+    results["initial-EECBS-runtime"] = std::to_string(a_eecbs.runtime);
 
     if (a_eecbs.iteration_stats.empty())
         return;
@@ -518,7 +683,7 @@ void calcInitialSolution_EECBS(const po::variables_map vm, std::unordered_map<st
             data.initial_plan.push_back(a_path);
         }
         myfile.close();
-        results["initial-soc"] = std::to_string(a_eecbs.iteration_stats.back().sum_of_costs);
+        results["initial-EECBS-soc"] = std::to_string(a_eecbs.iteration_stats.back().sum_of_costs);
     }
 }
 
@@ -637,6 +802,20 @@ void calcReplan_EECBS_OG(Instance* replan_instance, const po::variables_map vm, 
     // save computation time
     results["replan-EECBS-OG-first-runtime"] = std::to_string(a_eecbs.iteration_stats.front().runtime);
     results["replan-EECBS-OG-best-runtime"] = std::to_string(a_eecbs.iteration_stats.back().runtime);
+    if (std::stod(results["replan-CBS-OG-runtime"]) > std::stod(results["replan-EECBS-OG-first-runtime"]))
+    {
+        // find the best solution from EECBS given the time limit of CBS
+        for (auto stat_itr = a_eecbs.iteration_stats.begin(); stat_itr != a_eecbs.iteration_stats.end(); stat_itr++)
+        {
+            if (std::stod(results["replan-CBS-OG-runtime"]) > stat_itr->runtime)
+            {
+                results["replan-EECBS-OG-BBC-runtime"] = std::to_string(stat_itr->runtime);
+                results["replan-EECBS-OG-BBC-soc"] =  std::to_string(stat_itr->sum_of_costs);
+            }
+            else
+                break;
+        }
+    }
 
     if (a_eecbs.validateSolution())
     {
@@ -718,8 +897,6 @@ void calcReplan_EECBS_ICG(DelayInstance* delay_instance, const po::variables_map
     if (a_eecbs.iteration_stats.empty())
         return;
     // save computation time
-    std::cout << a_eecbs.iteration_stats.front().runtime << std::endl;
-    std::cout << a_eecbs.iteration_stats.back().runtime << std::endl;
     results["replan-EECBS-ICG-first-runtime"] = std::to_string(a_eecbs.iteration_stats.front().runtime);
     results["replan-EECBS-ICG-best-runtime"] = std::to_string(a_eecbs.iteration_stats.back().runtime);
     if (std::stod(results["replan-CBS-ICG-runtime"]) > std::stod(results["replan-EECBS-ICG-first-runtime"]))

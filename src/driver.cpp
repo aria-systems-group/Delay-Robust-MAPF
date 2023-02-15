@@ -108,5 +108,21 @@ int main(int argc, char** argv)
             write_csv(vm["output"].as<std::string>(), results);
         }
     }
+    else if ((vm["solver"].as<string>() == "newSolver"))
+    {
+        results = runNewPlanner(vm);
+        if (results["Example-ID"] != "")
+        {
+            write_csv(vm["output"].as<std::string>(), results);
+        }
+    }
+    else if ((vm["solver"].as<string>() == "graphCompare"))
+    {
+        results = runExperiment_6(vm);
+    }
+    else
+    {
+        std::cout << vm["solver"].as<string>() << " is not a valid imput" << std::endl;
+    }
 	return 0;
 }

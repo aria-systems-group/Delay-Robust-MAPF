@@ -595,7 +595,7 @@ bool CBS::generateChild(CBSNode*  node, CBSNode* parent)
 	return true;
 }
 
-inline void CBS::pushNode(CBSNode* node)
+void CBS::pushNode(CBSNode* node)
 {
 	num_HL_generated++;
 	node->time_generated = num_HL_generated;
@@ -625,7 +625,7 @@ inline void CBS::pushNode(CBSNode* node)
 }
 
 
-inline bool CBS::reinsertNode(CBSNode* node)
+bool CBS::reinsertNode(CBSNode* node)
 {
     if (screen == 2)
     {
@@ -1211,6 +1211,14 @@ bool CBS::solve(double _time_limit, int _cost_lowerbound, int _cost_upperbound)
     }
 	else if(!generateRoot())
 	    return false;
+
+    if (output_root_node)
+    {
+        auto curr = selectNode();
+        solution_found = true;
+        goal_node = curr;
+        return solution_found;
+    }
 
 	while (!cleanup_list.empty() && !solution_found)
 	{

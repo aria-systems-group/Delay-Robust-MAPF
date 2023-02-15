@@ -10,6 +10,7 @@
 #include <chrono>
 #include <utility>
 #include <random>
+#include <map>
 #include <boost/heap/pairing_heap.hpp>
 #include <boost/unordered_set.hpp>
 #include <boost/unordered_map.hpp>

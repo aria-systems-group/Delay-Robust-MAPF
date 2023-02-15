@@ -123,7 +123,7 @@ public:
 	MDD * getMDD(HLNode& node, int agent, size_t mdd_levels);
 	// void findSingletons(HLNode& node, int agent, Path& path);
 	void clear();
-private:
+// private:
 	int max_num_of_mdds = 10000; // per agent
 
 	vector<unordered_map<ConstraintsHasher, MDD*, 

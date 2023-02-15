@@ -10,6 +10,7 @@ class CBS
 {
 public:
 	bool randomRoot = false; // randomize the order of the agents in the root CT node
+    bool output_root_node = false;
 
 	/////////////////////////////////////////////////////////////////////////////////////
 	// stats
@@ -169,7 +170,7 @@ protected:
 	void computeConflictPriority(shared_ptr<Conflict>& con, CBSNode& node); // check the conflict is cardinal, semi-cardinal or non-cardinal
 
 
-private: // CBS only, cannot be used by ECBS
+// private: // CBS only, cannot be used by ECBS
     CBSNode* goal_node = nullptr;
 
 	pairing_heap< CBSNode*, compare<CBSNode::compare_node_by_f> > cleanup_list; // it is called open list in ECBS
@@ -177,9 +178,9 @@ private: // CBS only, cannot be used by ECBS
 	pairing_heap< CBSNode*, compare<CBSNode::compare_node_by_d> > focal_list; // this is ued for both ECBS and EES
 
 	// node operators
-	inline void pushNode(CBSNode* node);
+	void pushNode(CBSNode* node);
 	CBSNode* selectNode();
-	inline bool reinsertNode(CBSNode* node);
+	bool reinsertNode(CBSNode* node);
 
 	// high level search
 	bool generateChild(CBSNode* child, CBSNode* curr);

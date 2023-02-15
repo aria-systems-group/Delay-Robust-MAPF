@@ -1,14 +1,11 @@
-#include <fstream>
-#include <string>
-#include <vector>
-#include <random>
-#include <filesystem>
-#include <boost/program_options.hpp>
+#pragma once
 #include "common.h"
 #include "LNS.h"
 #include "CBS.h"
+#include "NewAlg.h"
 #include "AnytimeEECBS.h"
-#include <unordered_map>
+#include <boost/program_options.hpp>
+
 
 namespace po = boost::program_options;
 namespace fs = std::filesystem;
@@ -58,14 +55,19 @@ unsigned long mix(unsigned long a, unsigned long b, unsigned long c);
 // write results from results_map to file_name.csv
 void write_csv(const string& file_name, const std::unordered_map<std::string, std::string> &results);
 
+// new algorithm tests
+std::unordered_map<std::string, std::string> runNewPlanner(const po::variables_map vm);
+
 // main experiment functions
 std::unordered_map<std::string, std::string> runExperiment_1(const po::variables_map vm);
 std::unordered_map<std::string, std::string> runExperiment_2(const po::variables_map vm);
 std::unordered_map<std::string, std::string> runExperiment_3(const po::variables_map vm);
 std::unordered_map<std::string, std::string> runExperiment_4(const po::variables_map vm);
 std::unordered_map<std::string, std::string> runExperiment_5(const po::variables_map vm);
+std::unordered_map<std::string, std::string> runExperiment_6(const po::variables_map vm);
 
-// calculate initial solution to problem using original graph (OG)
+// calculate initial solution to problem
+void calcInitialSolution_NewAlg(const po::variables_map vm, std::unordered_map<std::string, std::string> &results, PlannerData &data);
 void calcInitialSolution_LNS(const po::variables_map vm, std::unordered_map<std::string, std::string> &results, PlannerData &data);
 void calcInitialSolution_CBS(const po::variables_map vm, std::unordered_map<std::string, std::string> &results, PlannerData &data);
 void calcInitialSolution_EECBS(const po::variables_map vm, std::unordered_map<std::string, std::string> &results, PlannerData &data);

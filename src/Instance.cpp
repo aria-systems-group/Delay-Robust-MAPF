@@ -193,7 +193,7 @@ bool Instance::isConnected(Location start, Location goal)
 		Location curr = open.front(); open.pop();
 		if ((curr.location == goal.location) && (curr.index == goal.index))
 			return true;
-		for (Location next : getNeighbors(curr))
+        for (Location next : getNeighbors(curr))
 		{
 			if (std::find(closed.begin(), closed.end(), next) != closed.end())
 				continue;

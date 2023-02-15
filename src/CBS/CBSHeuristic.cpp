@@ -573,11 +573,13 @@ bool CBSHeuristic::buildWeightedDependencyGraph(CBSNode& node, vector<int>& CG)
 		}
 		if ((clock() - start_time) / CLOCKS_PER_SEC > time_limit) // run out of time
 		{
+            std::cout << "out of time" << std::endl;
 			runtime_build_dependency_graph += (double)(clock() - start_time) / CLOCKS_PER_SEC;
 			return false;
 		}
 		if (CG[idx] == MAX_COST) // no solution
 		{
+            std::cout << "no solution" << std::endl;
             return false;
 		}
 		if (conflict->priority != conflict_priority::CARDINAL && CG[idx] > 0)

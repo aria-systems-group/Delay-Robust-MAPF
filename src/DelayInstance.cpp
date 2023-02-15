@@ -2,16 +2,20 @@
 
 DelayInstance::DelayInstance(const string& map_fname, const string& agent_fname, 
 							 vector<Path>& paths,
-							 int num_of_agents, 
+							 int num_of_agents,
+                             bool collidingPaths, 
 							 int num_of_rows, 
 							 int num_of_cols, 
 							 int num_of_obstacles, 
 							 int warehouse_width):
 	Instance(map_fname, agent_fname, num_of_agents, num_of_rows, num_of_cols,
-		num_of_obstacles, warehouse_width),improvements_(0)
+		num_of_obstacles, warehouse_width),improvements_(0), collidingPaths_(collidingPaths)
 {
-	originalPlan = std::move(paths);
-	createDelay();
+	originalPlan = paths;
+	if (!collidingPaths_)
+    {
+        createDelay();
+    }
 	if (delay_)
 	{
 		// change starts according to delay
@@ -31,6 +35,21 @@ DelayInstance::DelayInstance(const string& map_fname, const string& agent_fname,
 			}
 		}
 	}
+    else
+    {
+        // make indices correct
+        for (int id = 0; id < originalPlan.size(); id++) //
+        {
+            for (int idx = 0; idx < originalPlan[id].size(); idx++)
+            {
+                originalPlan[id][idx].Loc.index = idx;
+            }
+        }
+        postDelayPlan = originalPlan;
+        
+        // change starts according to delay
+        changeStarts();
+    }
 	cgGraphMaps.resize(num_of_agents, {});
 	icgGraphMaps.resize(num_of_agents, {});
 
@@ -42,14 +61,13 @@ void DelayInstance::fillcgGraphMap()
 {
 	// give every location in original_plan a list of neighbors, 
 	// which change if it is a rep. point
-	for (int a = 0; a < postDelayPlan.size(); a++)
+	for (int a = 0; a < postDelayPlan.size(); a++) 
 	{
 		for (int k = 0; k < postDelayPlan[a].size(); k++)
 		{
-			// std::cout << originalPlan[a][k].Loc.location << ", " << originalPlan[a][k].Loc.index;
 			Location curr = postDelayPlan[a][k].Loc;
 			if ( postDelayPlan[a].back().Loc.index > (curr.index ) )
-				cgGraphMaps[a].insert({curr, {postDelayPlan[a][curr.index + 1].Loc, curr}});
+                cgGraphMaps[a].insert({curr, {postDelayPlan[a][curr.index + 1].Loc, curr}});
 			else
 				cgGraphMaps[a].insert({curr, {curr}});
 		}
@@ -393,25 +411,39 @@ void DelayInstance::changeStarts()
 	// 	// place it into the start locations vector
 	// 	start_locations[p_idx] = new_start;
 	// }
-	int i = 0;
-	for (auto path : postDelayPlan)
-	{
-		Location new_start(-1, -1);
-		if (path.size() > (*delay_).second + 1)
-		{
-			new_start.location = path[(*delay_).second + 1].Loc.location;
-			new_start.index = path[(*delay_).second + 1].Loc.index;
-		}
-		else
-		{
-			new_start.location = path.back().Loc.location;
-			new_start.index = path.back().Loc.index;
-		}
-		// std::cout << new_start.index << std::endl;
-		start_locations[i] = new_start;
-		goal_locations[i].index = path.back().Loc.index;
-		i++;
-	}
+    if (!collidingPaths_)
+    {
+        int i = 0;
+        for (auto path : postDelayPlan)
+        {
+            Location new_start(-1, -1);
+            if (path.size() > (*delay_).second + 1)
+            {
+                new_start.location = path[(*delay_).second + 1].Loc.location;
+                new_start.index = path[(*delay_).second + 1].Loc.index;
+            }
+            else
+            {
+                new_start.location = path.back().Loc.location;
+                new_start.index = path.back().Loc.index;
+            }
+            // std::cout << new_start.index << std::endl;
+            start_locations[i] = new_start;
+            goal_locations[i].index = path.back().Loc.index;
+            i++;
+        }
+    }
+    else
+    {
+        int i = 0;
+        for (auto &path : postDelayPlan)
+        {
+            Location new_start(path[0].Loc.location, path[0].Loc.index);
+            start_locations[i] = new_start;
+            goal_locations[i].index = path.back().Loc.index;
+            i++;
+        }
+    }
 }
 
 
