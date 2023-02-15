@@ -75,11 +75,14 @@ std::unordered_map<std::string, std::string> runExperiment_6(const po::variables
     // initialize statistics stucture
     PlannerData dataResults;
 
-    // calculate initial solution with New Algorithm
-    calcInitialSolution_NewAlg(vm, results, dataResults);
-
     // calculate initial solution with EECBS
     calcInitialSolution_EECBS(vm, results, dataResults);
+
+    if (vm["agentNum"].as<int>() <= 50)
+    {
+        // calculate initial solution with New Algorithm
+        calcInitialSolution_NewAlg(vm, results, dataResults);
+    }
 
     // if initial plan was successful, then continue with replanning
     if (results["Example-ID"] != "")

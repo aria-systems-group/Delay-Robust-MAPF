@@ -579,7 +579,6 @@ bool CBSHeuristic::buildWeightedDependencyGraph(CBSNode& node, vector<int>& CG)
 		}
 		if (CG[idx] == MAX_COST) // no solution
 		{
-            std::cout << "no solution" << std::endl;
             return false;
 		}
 		if (conflict->priority != conflict_priority::CARDINAL && CG[idx] > 0)

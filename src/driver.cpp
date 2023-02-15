@@ -119,10 +119,14 @@ int main(int argc, char** argv)
     else if ((vm["solver"].as<string>() == "graphCompare"))
     {
         results = runExperiment_6(vm);
+        if (results["Example-ID"] != "")
+        {
+            write_csv(vm["output"].as<std::string>(), results);
+        }
     }
     else
     {
-        std::cout << vm["solver"].as<string>() << " is not a valid imput" << std::endl;
+        std::cout << vm["solver"].as<string>() << " is not a valid input" << std::endl;
     }
 	return 0;
 }
