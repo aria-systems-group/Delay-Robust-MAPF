@@ -42,12 +42,14 @@ std::unordered_map<std::string, std::string> runExperiment_6(const po::variables
         /* replanning on OG */
         {"replan-LNS-SIPP-OG-runtime",                                 std::to_string(dummy_var)},
         {"replan-LNS-SIPP-OG-soc",                                     std::to_string(dummy_var)},
-        {"replan-EECBS-OG-first-runtime",                              std::to_string(dummy_var)},
-        {"replan-EECBS-OG-first-soc",                                  std::to_string(dummy_var)},
-        {"replan-EECBS-OG-best-runtime",                               std::to_string(dummy_var)},
-        {"replan-EECBS-OG-best-soc",                                   std::to_string(dummy_var)},
         {"replan-CBS-OG-runtime",                                      std::to_string(dummy_var)},
         {"replan-CBS-OG-soc",                                          std::to_string(dummy_var)},
+        {"replan-EECBS-OG-first-runtime",                              std::to_string(dummy_var)},
+        {"replan-EECBS-OG-first-soc",                                  std::to_string(dummy_var)},
+        {"replan-EECBS-OG-BBC-runtime",                                std::to_string(dummy_var)},
+        {"replan-EECBS-OG-BBC-soc",                                    std::to_string(dummy_var)},
+        {"replan-EECBS-OG-best-runtime",                               std::to_string(dummy_var)},
+        {"replan-EECBS-OG-best-soc",                                   std::to_string(dummy_var)},      
         /* replanning on CG */
         {"replan-LNS-SIPP-CG-runtime",                                 std::to_string(dummy_var)},
         {"replan-LNS-SIPP-CG-soc",                                     std::to_string(dummy_var)},
@@ -520,9 +522,6 @@ void calcInitialSolution_NewAlg(const po::variables_map vm, std::unordered_map<s
     //     std::cout << instance->getStarts()[a].location << std::endl;
     // }
 
-    // save instance-related data
-    results["Num-Agents"] = std::to_string(instance->getDefaultNumberOfAgents());
-
     NewAlg newAlgorithm(instance, false, vm["screen"].as<int>());
 
     newAlgorithm.solve(vm["cutoffTime"].as<double>(), 0, MAX_COST);
@@ -534,6 +533,8 @@ void calcInitialSolution_NewAlg(const po::variables_map vm, std::unordered_map<s
     {
         if (data.initial_plan.empty())
         {
+            // save instance-related data
+            results["Num-Agents"] = std::to_string(instance->getDefaultNumberOfAgents());
             // create the results directory
             results["Example-ID"] = random_string();
             string random_dir_str = "Results/" + results["Example-ID"] + "/";
@@ -799,8 +800,12 @@ DelayInstance* calcDelay(const po::variables_map vm, std::unordered_map<std::str
 void calcReplan_EECBS_OG(Instance* replan_instance, const po::variables_map vm, std::unordered_map<std::string, std::string> &results, PlannerData &data)
 {
     AnytimeEECBS a_eecbs(replan_instance, vm["cutoffTime"].as<double>(), vm["screen"].as<int>());
-
+    a_eecbs.replanning  = true;
     a_eecbs.run();
+
+    
+    if (a_eecbs.iteration_stats.empty())
+        return;
 
     // save computation time
     results["replan-EECBS-OG-first-runtime"] = std::to_string(a_eecbs.iteration_stats.front().runtime);
@@ -846,8 +851,12 @@ void calcReplan_EECBS_OG(Instance* replan_instance, const po::variables_map vm, 
 void calcReplan_EECBS_CG(DelayInstance* delay_instance, const po::variables_map vm, std::unordered_map<std::string, std::string> &results, PlannerData &data)
 {
     AnytimeEECBS a_eecbs(delay_instance, vm["cutoffTime"].as<double>(), vm["screen"].as<int>());
-    a_eecbs.replanning = true;
+    a_eecbs.replanning  = true;
     a_eecbs.run();
+
+    
+    if (a_eecbs.iteration_stats.empty())
+        return;
 
     // save computation time
     results["replan-EECBS-CG-first-runtime"] = std::to_string(a_eecbs.iteration_stats.front().runtime);
@@ -893,7 +902,7 @@ void calcReplan_EECBS_CG(DelayInstance* delay_instance, const po::variables_map 
 void calcReplan_EECBS_ICG(DelayInstance* delay_instance, const po::variables_map vm, std::unordered_map<std::string, std::string> &results, PlannerData &data)
 {
     AnytimeEECBS a_eecbs(delay_instance, vm["cutoffTime"].as<double>(), vm["screen"].as<int>());
-    // a_eecbs.replanning  = true;
+    a_eecbs.replanning  = true;
     a_eecbs.run();
 
     
