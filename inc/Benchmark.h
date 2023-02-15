@@ -4,11 +4,12 @@
 #include "CBS.h"
 #include "NewAlg.h"
 #include "AnytimeEECBS.h"
+#include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 
 
 namespace po = boost::program_options;
-namespace fs = std::filesystem;
+namespace fs = boost::filesystem;
 typedef std::vector<char> char_array;
 
 

@@ -16,4 +16,5 @@ Results/*
 visTools/*
 CMakeFiles/*
 CMakeCache.txt
+._*
 lns

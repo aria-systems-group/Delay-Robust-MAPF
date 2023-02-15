@@ -541,7 +541,7 @@ void calcInitialSolution_NewAlg(const po::variables_map vm, std::unordered_map<s
             fs::create_directories(data.local_path);
             // save initial plan to directory and shared data
             ofstream myfile;
-            myfile.open (string(data.local_path) + "initial_solution.txt");
+            myfile.open (string(data.local_path.string()) + "initial_solution.txt");
             for (int a = 0; a < newAlgorithm.paths.size(); a++)
             {
                 myfile << "Agent: " << a << std::endl;
@@ -611,7 +611,7 @@ void calcInitialSolution_LNS(const po::variables_map vm, std::unordered_map<std:
 
         // save initial plan to directory and shared data
         ofstream myfile;
-        myfile.open (string(data.local_path) + "initial_solution.txt");
+        myfile.open (string(data.local_path.string()) + "initial_solution.txt");
         for (const auto &agent : lns.agents)
         {
             myfile << "Agent: " << agent.id << std::endl;
@@ -670,7 +670,7 @@ void calcInitialSolution_EECBS(const po::variables_map vm, std::unordered_map<st
 
         // save initial plan to directory and shared data
         ofstream myfile;
-        myfile.open (string(data.local_path) + "initial_solution.txt");
+        myfile.open (string(data.local_path.string()) + "initial_solution.txt");
         for (int a = 0; a < a_eecbs.solution.size(); a++)
         {
             myfile << "Agent: " << a << std::endl;
@@ -738,7 +738,7 @@ void calcInitialSolution_CBS(const po::variables_map vm, std::unordered_map<std:
 
         // save initial plan to directory and shared data
         ofstream myfile;
-        myfile.open (string(data.local_path) + "initial_solution.txt");
+        myfile.open (string(data.local_path.string()) + "initial_solution.txt");
         for (int a = 0; a < cbs.paths.size(); a++)
         {
             myfile << "Agent: " << a << std::endl;
@@ -787,7 +787,7 @@ DelayInstance* calcDelay(const po::variables_map vm, std::unordered_map<std::str
 
         // save the delay
         // Create and open a text file
-        ofstream mydelay(string(data.local_path) + "delay.txt");
+        ofstream mydelay(string(data.local_path.string()) + "delay.txt");
         // Write to the file
         mydelay << (*nxtInstance->delay_).first << ' ' << (*nxtInstance->delay_).second;
         // Close the file
