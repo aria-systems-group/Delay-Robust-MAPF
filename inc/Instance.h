@@ -97,6 +97,8 @@ public:
     		start_locations[i].index = -1;
     	}
     }
+    vector<Location> start_locations;
+    vector<Location> goal_locations;
 protected:
 	  // int moves_offset[MOVE_COUNT];
 	  vector<bool> my_map;
@@ -104,8 +106,7 @@ protected:
 	  string agent_fname;
 
 	  int num_of_agents;
-	  vector<Location> start_locations;
-	  vector<Location> goal_locations;
+	  
 
 	  bool nathan_benchmark = true;
 	  bool loadMap();

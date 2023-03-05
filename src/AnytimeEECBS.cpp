@@ -14,8 +14,7 @@ void AnytimeEECBS::run()
         ecbs.setBypass(true);
         ecbs.setRectangleReasoning(true);
         ecbs.setCorridorReasoning(true);
-        // ecbs.setHeuristicType(heuristics_type::WDG, heuristics_type::GLOBAL);
-        ecbs.setHeuristicType(improvements? heuristics_type::WDG : heuristics_type::ZERO, heuristics_type::ZERO);
+        ecbs.setHeuristicType(heuristics_type::WDG, heuristics_type::GLOBAL);
         ecbs.setTargetReasoning(true);
         ecbs.setMutexReasoning(false);
         ecbs.setConflictSelectionRule(conflict_selection::EARLIEST);
@@ -44,7 +43,7 @@ void AnytimeEECBS::run()
     }
 
     // run
-    double w = 2;
+    double w = 5;
     while(runtime < time_limit && sum_of_costs > sum_of_costs_lowerbound)
     {
         ecbs.clear();
@@ -66,7 +65,7 @@ void AnytimeEECBS::run()
             // a better way of computing w should be
             w = 1 + 0.99 * (sum_of_costs * 1.0 / sum_of_costs_lowerbound - 1);
             iteration_stats.emplace_back(instance->getDefaultNumberOfAgents(), sum_of_costs,
-                                         runtime, "EECBS("+ std::to_string(w) + ")", sum_of_costs_lowerbound);
+                                         runtime, "EECBS("+ std::to_string(w) + ")", sum_of_costs_lowerbound, 0, solution);
         }
 
         if (screen >= 1)

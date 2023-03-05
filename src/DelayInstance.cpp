@@ -276,7 +276,6 @@ void DelayInstance::createDelay()
 		{
 			const int delayed_point = std::rand() % (path_length - 2);
 			// const int delayed_point = 7; // only for bug fix
-			assert(delayed_point > path_length);
 			// set delay parameter
 			delay_ = new Delay(delayed_agent, delayed_point);
 

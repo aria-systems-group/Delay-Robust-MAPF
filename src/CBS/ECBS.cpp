@@ -21,24 +21,14 @@ bool ECBS::solve(double time_limit, int _cost_lowerbound)
 
 	while (!cleanup_list.empty() && !solution_found)
 	{
-		// std::cout << "entering main ECBS loop" << std::endl;
 		auto curr = selectNode();
-
-		// std::cout << curr->getFVal() << std::endl;
-		// exit(1);
-
-
-
 
 		if (terminate(curr))
         {
-        	// std::cout << "terminat returned true" << std::endl;
             if (solution_found)
                 goal_node = curr;
             return solution_found;
         }
-        // std::cout << "	paths size: " << (curr->paths).size() << std::endl;
-		// exit(1);
 
 		if ((curr == dummy_start || curr->chosen_from == "cleanup") &&
 		     !curr->h_computed) // heuristics has not been computed yet
@@ -214,7 +204,6 @@ bool ECBS::solve(double time_limit, int _cost_lowerbound)
             heuristic_helper.updateOnlineHeuristicErrors(*curr); // update online heuristic errors
 		curr->clear();
 	}  // end of while loop
-
 	return solution_found;
 }
 
