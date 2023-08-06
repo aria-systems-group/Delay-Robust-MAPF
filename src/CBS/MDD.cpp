@@ -613,7 +613,10 @@ MDD * MDDTable::getMDD(HLNode& node, int id, size_t mdd_levels)
 		mdd->buildMDD(ct, mdd_levels, search_engines[id]);
 	}
 	else // ECBS node
-		mdd->buildMDD(ct, search_engines[id]);
+    {
+		// mdd->buildMDD(ct, search_engines[id]);
+        mdd->buildMDD(ct, mdd_levels, search_engines[id]);
+    }
 	if (!lookupTable.empty())
 	{
 		// ConstraintsHasher c(id, &node);

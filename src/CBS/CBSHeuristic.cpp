@@ -322,15 +322,24 @@ bool CBSHeuristic::computeInformedHeuristics(ECBSNode& curr, const vector<int>& 
 	case heuristics_type::WDG:
 	    int delta_g;
 		if (!buildWeightedDependencyGraph(curr, min_f_vals, HG, delta_g))
+        {
+            cout << "unable to build wdg" << endl;
 			return false;
+        }
+        // cout << "built wdg" << endl;
 		assert(delta_g >= 0);
-		// cout << curr.g_val << "+" << delta_g << endl;
+        if (delta_g < 0)
+        {
+            cout << "ERROR in wdg!" << endl;
+            exit(1);
+        }
 		h = minimumWeightedVertexCover(HG) + delta_g;
-
+        // cout << "h==" << h << endl;
 		break;
 	default:
 		cerr << "ERROR in computing informed heurisctis" << endl;
 	}
+    // cout << h << endl;
 	if (h < 0)
 		return false;
 	curr.h_val = max(h, curr.h_val);
@@ -573,7 +582,7 @@ bool CBSHeuristic::buildWeightedDependencyGraph(CBSNode& node, vector<int>& CG)
 		}
 		if ((clock() - start_time) / CLOCKS_PER_SEC > time_limit) // run out of time
 		{
-            std::cout << "out of time" << std::endl;
+            // std::cout << "out of time" << std::endl;
 			runtime_build_dependency_graph += (double)(clock() - start_time) / CLOCKS_PER_SEC;
 			return false;
 		}
@@ -594,6 +603,11 @@ bool CBSHeuristic::buildWeightedDependencyGraph(CBSNode& node, vector<int>& CG)
 
 bool CBSHeuristic::buildWeightedDependencyGraph(ECBSNode& node, const vector<int>& min_f_vals, vector<int>& CG, int& delta_g)
 {
+    for (auto &v: min_f_vals)
+    {
+        if (v < 0)
+            cout << "F-VAL IS NEGATIVE!" << endl;
+    }
     delta_g = 0;
     vector<bool> counted(num_of_agents, false); // record the agents whose delta_g has been counted
 	for (const auto& conflict : node.conflicts)
@@ -663,12 +677,14 @@ bool CBSHeuristic::buildWeightedDependencyGraph(ECBSNode& node, const vector<int
             {
                 assert(get<1>(got->second) >= min_f_vals[a1]);
                 delta_g += get<1>(got->second) - min_f_vals[a1];
+                // cout << "right here 1" << endl;
                 counted[a1] = true;
             }
             if (!counted[a2])
             {
                 assert(get<2>(got->second) >= min_f_vals[a2]);
                 delta_g += get<2>(got->second) - min_f_vals[a2];
+                // cout << "right here 2" << endl;
                 counted[a2] = true;
             }
         }
@@ -686,13 +702,17 @@ bool CBSHeuristic::buildWeightedDependencyGraph(ECBSNode& node, const vector<int
             if (!counted[a1])
             {
                 assert(get<1>(rst) >= min_f_vals[a1]);
+                // cout << get<1>(rst) << " should be >= " << min_f_vals[a1] << endl;
                 delta_g += get<1>(rst) - min_f_vals[a1];
+                // cout << "right here 3" << endl;
                 counted[a1] = true;
             }
             if (!counted[a2])
             {
                 assert(get<2>(rst) >= min_f_vals[a2]);
+                // cout << get<2>(rst) << " should be >= " << min_f_vals[a2] << endl;
                 delta_g += get<2>(rst) - min_f_vals[a2];
+                // cout << "right here 4" << endl;
                 counted[a2] = true;
             }
         }
@@ -794,8 +814,11 @@ tuple<int, int, int> CBSHeuristic::solve2Agents(int a1, int a2, const ECBSNode& 
 	else if (cbs.solution_cost  < 0) // no solution
 		return make_tuple(MAX_COST, cbs.getInitialPathLength(0), cbs.getInitialPathLength(1));
 	else
+    {
+        // cout << "solve2agents solved the problem" << endl;
 		return make_tuple(cbs.solution_cost - cbs.dummy_start->g_val,
 		        cbs.getInitialPathLength(0), cbs.getInitialPathLength(1));
+    }
 }
 
 /*

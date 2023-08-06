@@ -14,7 +14,7 @@ void AnytimeEECBS::run()
         ecbs.setBypass(true);
         ecbs.setRectangleReasoning(true);
         ecbs.setCorridorReasoning(true);
-        ecbs.setHeuristicType(heuristics_type::WDG, heuristics_type::GLOBAL);
+        ecbs.setHeuristicType(heuristics_type::WDG, heuristics_type::ZERO);
         ecbs.setTargetReasoning(true);
         ecbs.setMutexReasoning(false);
         ecbs.setConflictSelectionRule(conflict_selection::EARLIEST);
@@ -23,16 +23,16 @@ void AnytimeEECBS::run()
     }
     else
     {
-        ecbs.setPrioritizeConflicts(improvements);
+        ecbs.setPrioritizeConflicts(true);
         ecbs.setDisjointSplitting(false);
-        ecbs.setBypass(improvements);
-        ecbs.setRectangleReasoning(improvements);
-        ecbs.setCorridorReasoning(false);
-        ecbs.setHeuristicType(improvements? heuristics_type::WDG : heuristics_type::ZERO, heuristics_type::ZERO);
-        ecbs.setTargetReasoning(improvements);
+        ecbs.setBypass(true);
+        ecbs.setRectangleReasoning(true);
+        ecbs.setCorridorReasoning(true);
+        ecbs.setHeuristicType(heuristics_type::ZERO, heuristics_type::ZERO);
+        ecbs.setTargetReasoning(true);
         ecbs.setMutexReasoning(false);
         ecbs.setConflictSelectionRule(conflict_selection::EARLIEST);
-        ecbs.setNodeSelectionRule(node_selection::NODE_CONFLICTPAIRS); //
+        ecbs.setNodeSelectionRule(node_selection::NODE_CONFLICTPAIRS);
         ecbs.setSavingStats(false);
     }
     preprocessing_time = ecbs.runtime_preprocessing;
@@ -43,11 +43,11 @@ void AnytimeEECBS::run()
     }
 
     // run
-    double w = 5;
+    double w = 2;
     while(runtime < time_limit && sum_of_costs > sum_of_costs_lowerbound)
     {
         ecbs.clear();
-        ecbs.setHighLevelSolver(high_level_solver_type::EES, w);
+        ecbs.setHighLevelSolver(high_level_solver_type::EES, w); //cbs.setHighLevelSolver(high_level_solver_type::ASTAREPS, w);
         ecbs.solve(time_limit - runtime, sum_of_costs_lowerbound);
         runtime += ecbs.runtime;
         assert(sum_of_costs_lowerbound <= ecbs.getLowerBound());
@@ -66,6 +66,11 @@ void AnytimeEECBS::run()
             w = 1 + 0.99 * (sum_of_costs * 1.0 / sum_of_costs_lowerbound - 1);
             iteration_stats.emplace_back(instance->getDefaultNumberOfAgents(), sum_of_costs,
                                          runtime, "EECBS("+ std::to_string(w) + ")", sum_of_costs_lowerbound, 0, solution);
+            cout << "Iteration " << iteration_stats.size() << ", "
+                 << "lower bound = " << sum_of_costs_lowerbound << ", "
+                 << "solution cost = " << sum_of_costs << ", "
+                 << "new w = " << w << ", "
+                 << "remaining time = " << time_limit - runtime << endl;
         }
 
         if (screen >= 1)

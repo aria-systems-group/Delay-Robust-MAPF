@@ -120,6 +120,18 @@ std::unordered_map<std::string, std::string> runExperiment_6(const po::variables
             results["replan-EECBS-OG-BBC-added-length"] = std::to_string(stoi(results["replan-EECBS-OG-BBC-soc"]) - (stoi(results["initial-EECBS-soc"]) + 1));
         results["replan-EECBS-OG-best-added-length"] = std::to_string(stoi(results["replan-EECBS-OG-best-soc"]) - (stoi(results["initial-EECBS-soc"]) + 1));
 
+
+        // cout << results["initial-EECBS-runtime"     ] << endl;
+        // cout << results["initial-EECBS-soc"         ] << endl;
+        // cout << results["replan-EECBS-OG-first-runtime"     ] << endl;
+        // cout << results["replan-EECBS-OG-first-soc"         ] << endl;
+        // cout << results["replan-EECBS-OG-first-added-length"] << endl;
+        // cout << results["replan-EECBS-OG-BBC-runtime"       ] << endl;
+        // cout << results["replan-EECBS-OG-BBC-soc"           ] << endl;
+        // cout << results["replan-EECBS-OG-BBC-added-length"  ] << endl;
+        // cout << results["replan-EECBS-OG-best-runtime"      ] << endl;
+        // cout << results["replan-EECBS-OG-best-soc"          ] << endl;      
+        // cout << results["replan-EECBS-OG-best-added-length" ] << endl;
         /* Replan on Constrained Graph */
         calcReplan_CBS_CG(delay_instance, vm, results, dataResults);
         results["replan-CBS-CG-delays"] = std::to_string(stoi(results["replan-CBS-CG-soc"]) - (stoi(results["initial-EECBS-soc"]) + 1));
@@ -134,7 +146,7 @@ std::unordered_map<std::string, std::string> runExperiment_6(const po::variables
         /* Activate improved constrained graph */
         delay_instance->activateImprovement();
 
-        // /* Replan on Improved Constrained Graph */
+        /* Replan on Improved Constrained Graph */
         calcReplan_CBS_ICG(delay_instance, vm, results, dataResults);
         results["replan-CBS-ICG-delays"] = std::to_string(stoi(results["replan-CBS-ICG-soc"]) - (stoi(results["initial-EECBS-soc"]) + 1));
         calcReplan_EECBS_ICG(delay_instance, vm, results, dataResults);
@@ -881,7 +893,7 @@ void calcReplan_EECBS_OG(Instance* replan_instance, const po::variables_map vm, 
                 break;
         }
     }
-
+    cout << "Testing Solution validity: " << a_eecbs.validateSolution() << endl;
     if (a_eecbs.validateSolution())
     {
         // save SOC
@@ -898,11 +910,12 @@ void calcReplan_EECBS_OG(Instance* replan_instance, const po::variables_map vm, 
                 soc_first += delay_time + new_path.size();
         }
         int t = stoi(results["initial-EECBS-soc"]);
-        if (soc_first == t) {
-            std::cout << "ERROR!" << std::endl;
-            exit(-1); // some kind of annoying bug soc should be >= t + 1. Just remove this example
-        }
+        // if (soc_first == t) { // on OG we can find better solutions -- this only counts on CG/ICG
+        //     std::cout << "ERROR!" << std::endl;
+        //     exit(-1); // some kind of annoying bug soc should be >= t + 1. Just remove this example
+        // }
         results["replan-EECBS-OG-first-soc"] = std::to_string(soc_first);
+        cout  << soc_first << " -- " << results["replan-EECBS-OG-first-soc"] << endl;
         int soc_best = 0;
         new_paths = a_eecbs.iteration_stats.back().paths;
         for (int idx = 0; idx != new_paths.size(); idx++) {
@@ -918,6 +931,7 @@ void calcReplan_EECBS_OG(Instance* replan_instance, const po::variables_map vm, 
             exit(-1); // some kind of annoying bug soc should be >= t + 1. Just remove this example
         }
         results["replan-EECBS-OG-best-soc"] = std::to_string(soc_best);
+        cout  << soc_best << " -- " << results["replan-EECBS-OG-best-soc"] << endl;
     }
 }
 

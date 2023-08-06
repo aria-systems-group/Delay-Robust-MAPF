@@ -3,6 +3,7 @@
 
 bool ECBS::solve(double time_limit, int _cost_lowerbound)
 {
+    // cout << "entered ECBS." << endl;
 	this->cost_lowerbound = _cost_lowerbound;
 	this->inadmissible_cost_lowerbound = 0;
 	this->time_limit = time_limit;
@@ -19,9 +20,13 @@ bool ECBS::solve(double time_limit, int _cost_lowerbound)
     if(!generateRoot())
         return false;
 
+    int i = 0;
 	while (!cleanup_list.empty() && !solution_found)
 	{
+        // cout << "top of loop... " << i << endl;
+        i++;
 		auto curr = selectNode();
+        // cout << "selected... checking terminate" << endl;
 
 		if (terminate(curr))
         {
@@ -29,12 +34,15 @@ bool ECBS::solve(double time_limit, int _cost_lowerbound)
                 goal_node = curr;
             return solution_found;
         }
+        // cout << "done with check. entering heuristics" << endl;
 
 		if ((curr == dummy_start || curr->chosen_from == "cleanup") &&
 		     !curr->h_computed) // heuristics has not been computed yet
 		{
             runtime = (double)(clock() - start) / CLOCKS_PER_SEC;
+            // cout << "going to heuristic_helper" << endl;
             bool succ = heuristic_helper.computeInformedHeuristics(*curr, min_f_vals, time_limit - runtime);
+            // cout << "done with heuristic_helper: " << succ << endl;
             runtime = (double)(clock() - start) / CLOCKS_PER_SEC;
             if (!succ) // no solution, so prune this node
             {
@@ -47,14 +55,16 @@ bool ECBS::solve(double time_limit, int _cost_lowerbound)
             if (reinsertNode(curr))
                 continue;
 		}
-
+        // cout << "done with heuristics. enting classify." << endl;
         classifyConflicts(*curr);
 
 		//Expand the node
+        // cout << "done with classification. entering expansion logic" << endl;
 		num_HL_expanded++;
 		curr->time_expanded = num_HL_expanded;
 		if (bypass && curr->chosen_from != "cleanup")
 		{
+            // cout << "bypass logic" << endl;
 			bool foundBypass = true;
 			while (foundBypass)
 			{
@@ -82,6 +92,7 @@ bool ECBS::solve(double time_limit, int _cost_lowerbound)
 						min_f_vals = fmin_copy;
 					}
 					solved[i] = generateChild(child[i], curr);
+                    // cout << "solved[i] = " << solved[i] << endl;
 					if (!solved[i])
 					{
 						delete (child[i]);
@@ -143,6 +154,7 @@ bool ECBS::solve(double time_limit, int _cost_lowerbound)
 		}
 		else // no bypass
 		{
+            // cout << "no bypass logic" << endl;
 			ECBSNode* child[2] = { new ECBSNode() , new ECBSNode() };
 			curr->conflict = chooseConflict(*curr);
 			addConstraints(curr, child[0], child[1]);
@@ -161,6 +173,7 @@ bool ECBS::solve(double time_limit, int _cost_lowerbound)
 					min_f_vals = fmin_copy;
 				}
 				solved[i] = generateChild(child[i], curr);
+                // cout << "solved[i] = " << solved[i] << endl;
 				if (!solved[i])
 				{
 					delete (child[i]);
@@ -172,6 +185,7 @@ bool ECBS::solve(double time_limit, int _cost_lowerbound)
 					cout << "		Generate " << *child[i] << endl;
 			}
 		}
+        // cout << "done with expansion. entering switch" << endl;
 		switch (curr->conflict->type)
 		{
 		case conflict_type::RECTANGLE:
@@ -192,6 +206,7 @@ bool ECBS::solve(double time_limit, int _cost_lowerbound)
 		default:
 			break;
 		}
+        // cout << "done switch. entering if statements" << endl;
 		if (curr->chosen_from == "cleanup")
 			num_cleanup++;
 		else if (curr->chosen_from == "open")
@@ -202,7 +217,8 @@ bool ECBS::solve(double time_limit, int _cost_lowerbound)
 			num_cardinal_conflicts++;
         if (!curr->children.empty())
             heuristic_helper.updateOnlineHeuristicErrors(*curr); // update online heuristic errors
-		curr->clear();
+		// cout << "done with everything. cleaning curr" << endl; 
+        curr->clear();
 	}  // end of while loop
 	return solution_found;
 }
@@ -291,7 +307,6 @@ bool ECBS::generateRoot()
 		if (paths_found_initially[i].first.empty())
 		{
 			cerr << "No path exists for agent " << i << endl;
-			exit(1);
 			delete root;
 			return false;
 		}
@@ -309,7 +324,7 @@ bool ECBS::generateRoot()
 		root->sum_of_costs += (int)paths[i]->size() - 1;
 		// std::cout << i << std::endl;
 		// std::cout << "root SOC " << root->sum_of_costs << " min_f_vals[i] " << min_f_vals[i] << 
-			// " g_val " << root->g_val << std::endl;
+		// 	" g_val " << root->g_val << std::endl;
 	}
 
 	root->h_val = 0;
@@ -623,17 +638,20 @@ void ECBS::printPaths() const
 
 void ECBS::classifyConflicts(ECBSNode &node)
 {
+    // cout << "beginning function" << endl;
     if (node.unknownConf.empty())
         return;
 	// Classify all conflicts in unknownConf
+    // cout << "about to clasify conflicts" << endl;
 	while (!node.unknownConf.empty())
 	{
+        // cout << "getting unknownConf" << endl;
 		shared_ptr<Conflict> con = node.unknownConf.front();
 		int a1 = con->a1, a2 = con->a2;
 		int timestep = get<3>(con->constraint1.back());
 		constraint_type type = get<4>(con->constraint1.back());
 		node.unknownConf.pop_front();
-
+        // cout << "at PC logic: " << PC << endl;
 		if (PC)
 		    if (node.chosen_from == "cleanup" ||
                // (min_f_vals[a1] * suboptimality >= min_f_vals[a1] + 1 &&
@@ -667,6 +685,7 @@ void ECBS::classifyConflicts(ECBSNode &node)
 		}*/
 
 		// Target Reasoning
+        // cout << "about to enter target reasoning logic"<< endl;
 		if (con->type == conflict_type::TARGET)
 		{
 			computeSecondPriorityForConflict(*con, node);
@@ -675,6 +694,7 @@ void ECBS::classifyConflicts(ECBSNode &node)
 		}
 
 		// Corridor reasoning
+        // cout << "about to enter corridor reasoning logic"<< endl;
 		if (corridor_reasoning)
 		{
 			auto corridor = corridor_helper.run(con, paths, node);
@@ -689,6 +709,7 @@ void ECBS::classifyConflicts(ECBSNode &node)
 
 
 		// Rectangle reasoning
+        // cout << "about to enter rectangle reasoning logic"<< endl;
 		if (rectangle_reasoning &&
 		    (int)paths[a1]->size() - 1 == min_f_vals[a1] && // the paths for both agents are their shortest paths
 		    (int)paths[a2]->size() - 1 == min_f_vals[a2] &&
@@ -696,9 +717,13 @@ void ECBS::classifyConflicts(ECBSNode &node)
 			min_f_vals[a2] > timestep &&
 			type == constraint_type::VERTEX) // vertex conflict
 		{
+            // cout << "right here 0" << endl;
 			auto mdd1 = mdd_helper.getMDD(node, a1, paths[a1]->size());
+            // cout << "right here 1" << endl;
 			auto mdd2 = mdd_helper.getMDD(node, a2, paths[a2]->size());
+            // cout << "right here 2" << endl;
 			auto rectangle = rectangle_helper.run(paths, timestep, a1, a2, mdd1, mdd2);
+            // cout << "right here 3" << endl;
 			if (rectangle != nullptr)
 			{
                 if (!PC)
@@ -708,11 +733,12 @@ void ECBS::classifyConflicts(ECBSNode &node)
 				continue;
 			}
 		}
-
+        // cout << "about to compute second priority"<< endl;
 		computeSecondPriorityForConflict(*con, node);
 		node.conflicts.push_back(con);
+        // cout << "end of while loop"<< endl;
 	}
-
+    // cout << "out of while loop"<< endl;
 	// remove conflicts that cannot be chosen, to save some memory
 	removeLowPriorityConflicts(node.conflicts);
 }
