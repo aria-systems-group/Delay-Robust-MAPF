@@ -112,8 +112,8 @@ std::unordered_map<std::string, std::string> runExperiment_6(const po::variables
         // /* Replan on Original Graph */
         calcReplan_CBS_OG(dataResults.original_instance, vm, results, dataResults);
         results["replan-CBS-OG-added-length"] = std::to_string(stoi(results["replan-CBS-OG-soc"]) - (stoi(results["initial-EECBS-soc"]) + 1));
-        calcReplan_LNS_SIPP_OG(dataResults.original_instance, vm, results, dataResults);
-        results["replan-LNS-SIPP-OG-added-length"] = std::to_string(stoi(results["replan-LNS-SIPP-OG-soc"]) - (stoi(results["initial-EECBS-soc"]) + 1));
+        // calcReplan_LNS_SIPP_OG(dataResults.original_instance, vm, results, dataResults);
+        // results["replan-LNS-SIPP-OG-added-length"] = std::to_string(stoi(results["replan-LNS-SIPP-OG-soc"]) - (stoi(results["initial-EECBS-soc"]) + 1));
         calcReplan_EECBS_OG(dataResults.original_instance, vm, results, dataResults);
         results["replan-EECBS-OG-first-added-length"] = std::to_string(stoi(results["replan-EECBS-OG-first-soc"]) - (stoi(results["initial-EECBS-soc"]) + 1));
         if (stoi(results["replan-EECBS-OG-BBC-soc"]) > 0)
@@ -140,8 +140,8 @@ std::unordered_map<std::string, std::string> runExperiment_6(const po::variables
         if (stoi(results["replan-EECBS-CG-BBC-soc"]) > 0)
             results["replan-EECBS-CG-BBC-delays"] = std::to_string(stoi(results["replan-EECBS-CG-BBC-soc"]) - (stoi(results["initial-EECBS-soc"]) + 1));
         results["replan-EECBS-CG-best-delays"] = std::to_string(stoi(results["replan-EECBS-CG-best-soc"]) - (stoi(results["initial-EECBS-soc"]) + 1));
-        calcReplan_LNS_SIPP_CG(delay_instance, vm, results, dataResults);
-        results["replan-LNS-SIPP-CG-delays"] = std::to_string(stoi(results["replan-LNS-SIPP-CG-soc"]) - (stoi(results["initial-EECBS-soc"]) + 1));
+        // calcReplan_LNS_SIPP_CG(delay_instance, vm, results, dataResults);
+        // results["replan-LNS-SIPP-CG-delays"] = std::to_string(stoi(results["replan-LNS-SIPP-CG-soc"]) - (stoi(results["initial-EECBS-soc"]) + 1));
 
         /* Activate improved constrained graph */
         delay_instance->activateImprovement();
@@ -154,8 +154,8 @@ std::unordered_map<std::string, std::string> runExperiment_6(const po::variables
         if (stoi(results["replan-EECBS-ICG-BBC-soc"]) > 0)
             results["replan-EECBS-ICG-BBC-delays"] = std::to_string(stoi(results["replan-EECBS-ICG-BBC-soc"]) - (stoi(results["initial-EECBS-soc"]) + 1));
         results["replan-EECBS-ICG-best-delays"] = std::to_string(stoi(results["replan-EECBS-ICG-best-soc"]) - (stoi(results["initial-EECBS-soc"]) + 1));
-        calcReplan_LNS_SIPP_ICG(delay_instance, vm, results, dataResults);
-        results["replan-LNS-SIPP-ICG-delays"] = std::to_string(stoi(results["replan-LNS-SIPP-ICG-soc"]) - (stoi(results["initial-EECBS-soc"]) + 1));
+        // calcReplan_LNS_SIPP_ICG(delay_instance, vm, results, dataResults);
+        // results["replan-LNS-SIPP-ICG-delays"] = std::to_string(stoi(results["replan-LNS-SIPP-ICG-soc"]) - (stoi(results["initial-EECBS-soc"]) + 1));
     }
     return results;
 }
