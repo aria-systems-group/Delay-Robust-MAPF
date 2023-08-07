@@ -26,7 +26,7 @@ void AnytimeEECBS::run()
         ecbs.setPrioritizeConflicts(true);
         ecbs.setDisjointSplitting(false);
         ecbs.setBypass(true);
-        ecbs.setRectangleReasoning(true);
+        ecbs.setRectangleReasoning(false); // this setting causes a lot of seg faults -- this is a known bug
         ecbs.setCorridorReasoning(true);
         ecbs.setHeuristicType(heuristics_type::ZERO, heuristics_type::ZERO);
         ecbs.setTargetReasoning(true);

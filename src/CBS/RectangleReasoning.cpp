@@ -113,10 +113,12 @@ shared_ptr<Conflict> RectangleReasoning::findRectangleConflictByRM(const vector<
                         continue;
                     if (!isRectangleConflict(s1, s2, g1, g2))
                         continue;
+                    // cout << "found rectnagle conflict" << endl;
                     auto Rg = getRg(s1, g1, g2);
                     auto Rs = getRs(s1, s2, g1);
                     int new_area = (abs(Rs.first - Rg.first) + 1) * (abs(Rs.second - Rg.second) + 1);
                     int new_type = classifyRectangleConflict(s1, s2, g1, g2, Rg);
+                    // cout << "checking if statement" << endl;
                     if (new_type > type || (new_type == type && new_area > area))
                     {
                         int Rg_t = timestep + abs(Rg.first - location.first) + abs(Rg.second - location.second);
@@ -145,7 +147,6 @@ shared_ptr<Conflict> RectangleReasoning::findRectangleConflictByRM(const vector<
             }
         }
     }
-
     return rectangle;
 }
 

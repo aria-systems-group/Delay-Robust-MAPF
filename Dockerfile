@@ -1,4 +1,4 @@
-FROM ubuntu:22.04
+FROM ubuntu:20.04
 
 # LABEL about the custom image
 LABEL maintainer="juko6110@colorado.edu"

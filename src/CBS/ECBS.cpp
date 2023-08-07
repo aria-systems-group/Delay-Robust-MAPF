@@ -24,7 +24,7 @@ bool ECBS::solve(double time_limit, int _cost_lowerbound)
 	while (!cleanup_list.empty() && !solution_found)
 	{
         // cout << "top of loop... " << i << endl;
-        i++;
+        // i++;
 		auto curr = selectNode();
         // cout << "selected... checking terminate" << endl;
 
@@ -127,13 +127,17 @@ bool ECBS::solve(double time_limit, int _cost_lowerbound)
 						}
 					}
 				}
+                // cout << "is there still bypass? " << foundBypass << endl;
 				if (foundBypass)
 				{
+                    // cout << "about to delete all chile stuff" << endl;
 					for (auto & i : child)
 					{
 						delete i;
 					}
+                    // cout << "done. now classifying" << endl;
                     classifyConflicts(*curr); // classify the new-detected conflicts
+                    // cout << "done" << endl;
 				}
 				else
 				{
@@ -150,6 +154,7 @@ bool ECBS::solve(double time_limit, int _cost_lowerbound)
 						}
 					}
 				}
+                // cout << "back to top" << endl;
 			}
 		}
 		else // no bypass
@@ -217,8 +222,9 @@ bool ECBS::solve(double time_limit, int _cost_lowerbound)
 			num_cardinal_conflicts++;
         if (!curr->children.empty())
             heuristic_helper.updateOnlineHeuristicErrors(*curr); // update online heuristic errors
-		// cout << "done with everything. cleaning curr" << endl; 
+		// cout << "done. cleaning curr" << endl; 
         curr->clear();
+        // cout << "returning to top" << endl;
 	}  // end of while loop
 	return solution_found;
 }
@@ -726,10 +732,17 @@ void ECBS::classifyConflicts(ECBSNode &node)
             // cout << "right here 3" << endl;
 			if (rectangle != nullptr)
 			{
+                // cout << "right here 3.1" << endl;
                 if (!PC)
+                {
+                    // cout << "right here 3.1.1" << endl;
                     rectangle->priority = conflict_priority::UNKNOWN;
+                }
+                // cout << "right here 3.2" << endl;
 				computeSecondPriorityForConflict(*rectangle, node);
+                // cout << "right here 3.3" << endl;
 				node.conflicts.push_back(rectangle);
+                // cout << "done with 3" << endl;
 				continue;
 			}
 		}
