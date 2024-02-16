@@ -1,6 +1,7 @@
 #pragma once
 #include "Instance.h"
 #include <unordered_map>
+#include <random>
 
 
 class DelayInstance: public Instance
@@ -8,14 +9,19 @@ class DelayInstance: public Instance
 public:
 	DelayInstance(const string& map_fname, const string& agent_fname, 
 		vector<Path>& paths,
-		int num_of_agents = 0, bool collidingPaths=false, int num_of_rows = 0, int num_of_cols = 0, 
-		int num_of_obstacles = 0, int warehouse_width = 0);
+		int num_of_agents = 0, 
+        int num_of_delays = 1,
+        bool collidingPaths=false, 
+        int num_of_rows = 0, 
+        int num_of_cols = 0, 
+		int num_of_obstacles = 0, 
+        int warehouse_width = 0);
 	~DelayInstance() {};
 	bool foundDelay()
 	{
         if (!collidingPaths_)
         {
-            if (delay_)
+            if (!delay_.empty())
                 return true;
             else
                 return false;
@@ -40,6 +46,8 @@ public:
     	calcRepresentativePoints();
     	fillicgGraphMap();
     };
+
+    int num_of_delays_;
 
 private:
 	void createDelay();

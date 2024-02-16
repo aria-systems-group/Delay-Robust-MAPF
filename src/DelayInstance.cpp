@@ -1,8 +1,12 @@
 #include "DelayInstance.h"
+#include <algorithm>
+#include <stdexcept>
+#include <vector>
 
 DelayInstance::DelayInstance(const string& map_fname, const string& agent_fname, 
 							 vector<Path>& paths,
 							 int num_of_agents,
+							 int num_of_delays,
                              bool collidingPaths, 
 							 int num_of_rows, 
 							 int num_of_cols, 
@@ -11,12 +15,17 @@ DelayInstance::DelayInstance(const string& map_fname, const string& agent_fname,
 	Instance(map_fname, agent_fname, num_of_agents, num_of_rows, num_of_cols,
 		num_of_obstacles, warehouse_width),improvements_(0), collidingPaths_(collidingPaths)
 {
+	num_of_delays_ = num_of_delays;
+	if (num_of_delays_ >= num_of_agents) {
+		throw std::out_of_range("Number of delays must be strictly less than number of agents!");
+	}
 	originalPlan = paths;
 	if (!collidingPaths_)
     {
         createDelay();
     }
-	if (delay_)
+
+	if (!delay_.empty())
 	{
 		// change starts according to delay
 		changeStarts();
@@ -262,51 +271,77 @@ void DelayInstance::calcRepresentativePoints()
 void DelayInstance::createDelay()
 {
 	int numAttempts = 0;
-	while ( (numAttempts < 50) && (!delay_) )
+	std::vector<int> agents(num_of_agents);
+	for (int i = 0; i < num_of_agents; i++) {
+		agents[i] = i;
+	}
+
+	while ( numAttempts < 50 && delay_.empty() )
 	{
-   		const int delayed_agent = std::rand() % num_of_agents;
-   		// const int delayed_agent = 3; // only for bug fix
-		const int path_length = originalPlan[delayed_agent].size();
+		std::vector<int> delayedAgents;
 
-		// for (auto pe : originalPlan[delayed_agent])
-		// 	std::cout << getRowCoordinate(pe.Loc.location) << "," << 
-		// 		getColCoordinate(pe.Loc.location) << std::endl;
+		std::sample(agents.begin(), agents.end(), std::back_inserter(delayedAgents),
+            num_of_delays_, std::mt19937{std::random_device{}()});
 
-		if (path_length > 3)
-		{
-			const int delayed_point = std::rand() % (path_length - 2);
-			// const int delayed_point = 7; // only for bug fix
-			// set delay parameter
-			delay_ = new Delay(delayed_agent, delayed_point);
+		vector<int> path_lengths;
+		// int minSize = INT_MAX;
+		// int minSizeIdx = -1;
+		for (auto &a : delayedAgents) {
+			int pathSize = originalPlan[a].size();
+			path_lengths.push_back(pathSize);
+			// if (pathSize < minSize) {
+				// minSize = pathSize;
+				// minSizeIdx = a;
+			// }
+		}
 
-			// for debugging purposes ONLY
-			// delay_ = new Delay(7, 0);
+		// now we have a vector of paths and a min size of paths
+		auto pItr = std::min_element(path_lengths.begin(), path_lengths.end());
+		int minSize = *pItr; 
+		
+		if (minSize > 3) {
+			const int delayed_point = std::rand() % (minSize - 2);
+			for (int i = 0; i < num_of_delays_; i++) {
+				delay_.push_back(new Delay(delayedAgents[i], delayed_point));
+			}
 
 			// if we do not need to replan, need to try another delay!
 			if (isCollisionFree())
 			{
 				postDelayPlan.clear();
-				delete delay_;
-				delay_ = nullptr;
+				for (int i = 0; i < num_of_delays_; i++) {
+					delete delay_[i];
+					delay_[i] = nullptr;
+				}
+				delay_.clear();
 			}
-			else
-			{
+			else {
 				// make sure delayed agent does not collide immediately after delay
-				Path delayed_path = postDelayPlan[(*delay_).first];
-				for (int aid = 0; aid < postDelayPlan.size(); aid++)
-				{
-					if (aid != delay_->first)
+				bool isValid = true;
+				for (auto &delay : delay_) {
+					if (!isValid) {
+						break;
+					}
+					Path delayed_path = postDelayPlan[delay->first];
+					for (int aid = 0; aid < postDelayPlan.size(); aid++)
 					{
-						if (postDelayPlan[aid].size() > (delay_->second + 1) )
+						if (aid != delay->first)
 						{
-							// cannot have a delay where an agent 
-							// collides immediately after delay
-							if (postDelayPlan[aid][(*delay_).second + 1].Loc.location == delayed_path[(*delay_).second + 1].Loc.location)
+							if (postDelayPlan[aid].size() > (delay->second + 1) )
 							{
-								postDelayPlan.clear();
-								delete delay_;
-								delay_ = nullptr; 
-								break;
+								// cannot have a delay where an agent 
+								// collides immediately after delay
+								if (postDelayPlan[aid][(*delay).second + 1].Loc.location == delayed_path[(*delay).second + 1].Loc.location)
+								{
+									postDelayPlan.clear();
+									for (int i = 0; i < num_of_delays_; i++) {
+										delete delay_[i];
+										delay_[i] = nullptr;
+									}
+									delay_.clear();
+									isValid = false;
+									break;
+								}
 							}
 						}
 					}
@@ -314,13 +349,60 @@ void DelayInstance::createDelay()
 			}
 		}
 		numAttempts++;
+		// // for (auto pe : originalPlan[delayed_agent])
+		// // 	std::cout << getRowCoordinate(pe.Loc.location) << "," << 
+		// // 		getColCoordinate(pe.Loc.location) << std::endl;
+
+		// if (path_length > 3)
+		// {
+		// 	const int delayed_point = std::rand() % (path_length - 2);
+		// 	// const int delayed_point = 7; // only for bug fix
+		// 	// set delay parameter
+		// 	delay_ = new Delay(delayed_agent, delayed_point);
+
+		// 	// for debugging purposes ONLY
+		// 	// delay_ = new Delay(7, 0);
+
+		// 	// if we do not need to replan, need to try another delay!
+		// 	if (isCollisionFree())
+		// 	{
+		// 		postDelayPlan.clear();
+		// 		delete delay_;
+		// 		delay_ = nullptr;
+		// 	}
+		// 	else
+		// 	{
+		// 		// make sure delayed agent does not collide immediately after delay
+		// 		Path delayed_path = postDelayPlan[(*delay_).first];
+		// 		for (int aid = 0; aid < postDelayPlan.size(); aid++)
+		// 		{
+		// 			if (aid != delay_->first)
+		// 			{
+		// 				if (postDelayPlan[aid].size() > (delay_->second + 1) )
+		// 				{
+		// 					// cannot have a delay where an agent 
+		// 					// collides immediately after delay
+		// 					if (postDelayPlan[aid][(*delay_).second + 1].Loc.location == delayed_path[(*delay_).second + 1].Loc.location)
+		// 					{
+		// 						postDelayPlan.clear();
+		// 						delete delay_;
+		// 						delay_ = nullptr; 
+		// 						break;
+		// 					}
+		// 				}
+		// 			}
+		// 		}
+		// 	}
+		// }
+		
 	}
-	if (delay_)
+	if (!delay_.empty())
 	{
-		std::cout << "Found Delay after " << numAttempts << " attempts!" << std::endl;
-		std::cout << "Agent: " << (*delay_).first << std::endl;
-		std::cout << "Time: " << (*delay_).second << std::endl;
-		std::cout << "Collision occurs at time: " << coll_time << std::endl;
+		std::cout << "Found a set of " << delay_.size() << " delays" << endl;
+		// std::cout << "Found Delay after " << numAttempts << " attempts!" << std::endl;
+		// std::cout << "Agent: " << (*delay_).first << std::endl;
+		// std::cout << "Time: " << (*delay_).second << std::endl;
+		std::cout << "Collision occurs at time: " << delay_[0]->second << std::endl;
 
 		// int i = 13;
 		// std::cout << "Agent " << i << std::endl;
@@ -339,7 +421,7 @@ void DelayInstance::createDelay()
 
 bool DelayInstance::isCollisionFree()
 {
-	// make a copy of existing solution
+	// make a deep copy of existing solution
 	for (int p = 0; p < originalPlan.size(); p++)
 	{
 		vector<PathEntry> new_path = {};
@@ -352,10 +434,13 @@ bool DelayInstance::isCollisionFree()
         postDelayPlan.push_back(new_path);
 	}
 
-	// insert the delay to plan
-	PathEntry delay_entry = originalPlan[(*delay_).first][(*delay_).second];
-	PathEntry new_entry(delay_entry.Loc.location);
-	postDelayPlan[(*delay_).first].insert(postDelayPlan[(*delay_).first].begin()+(*delay_).second+1, new_entry);
+	for (auto &delay : delay_) {
+		// insert the delay to plan
+		PathEntry delay_entry = originalPlan[(*delay).first][(*delay).second];
+		PathEntry new_entry(delay_entry.Loc.location);
+		postDelayPlan[(*delay).first].insert(postDelayPlan[(*delay).first].begin()+(*delay).second+1, new_entry);
+	}
+	
 
 	int i = 0;
 	for (auto &path : postDelayPlan)
@@ -366,7 +451,7 @@ bool DelayInstance::isCollisionFree()
 		{
 			if (pe.Loc.index == -1)
 			{
-				pe.Loc.index = (*delay_).second;
+				pe.Loc.index = (*delay_[0]).second;
 				needIncrement = true;
 			}
 			if (needIncrement)
@@ -416,10 +501,10 @@ void DelayInstance::changeStarts()
         for (auto path : postDelayPlan)
         {
             Location new_start(-1, -1);
-            if (path.size() > (*delay_).second + 1)
+            if (path.size() > (*delay_[0]).second + 1)
             {
-                new_start.location = path[(*delay_).second + 1].Loc.location;
-                new_start.index = path[(*delay_).second + 1].Loc.index;
+                new_start.location = path[(*delay_[0]).second + 1].Loc.location;
+                new_start.index = path[(*delay_[0]).second + 1].Loc.index;
             }
             else
             {

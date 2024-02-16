@@ -1,5 +1,6 @@
 #pragma once
 #include"common.h"
+#include <vector>
 
 typedef std::pair<const int, const int> Delay; // a pair (agent, time)
 
@@ -77,7 +78,7 @@ public:
 	int agent_idx = 0;
 	vector<Path> originalPlan{};
 	int coll_time = -1;
-	Delay* delay_ = nullptr;
+	vector<Delay*> delay_{};
 	vector<Path> postDelayPlan{};
 	int numDelays = 0;
 

@@ -8,7 +8,7 @@ int RANDOM_WALK_STEPS = 100000;
 
 Instance::Instance(const string& map_fname, const string& agent_fname, 
 	int num_of_agents, int num_of_rows, int num_of_cols, int num_of_obstacles, int warehouse_width):
-	map_fname(map_fname), agent_fname(agent_fname), num_of_agents(num_of_agents), delay_(nullptr)
+	map_fname(map_fname), agent_fname(agent_fname), num_of_agents(num_of_agents)
 {
 	bool succ = loadMap();
 	if (!succ)

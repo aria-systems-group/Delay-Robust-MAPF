@@ -31,7 +31,7 @@ void CBS::updatePaths(CBSNode* curr)
 void CBS::countInducedDelays(std::vector<Path> &old_paths) const
 {
     // first, run sanity checks
-    const int shift = instance_->delay_->second + 1;
+    const int shift = instance_->delay_[0]->second + 1;
     // now, examine the number of delays
     // note that delays may only be induced iff new path > 1
     std::vector<int> agent_ids{};

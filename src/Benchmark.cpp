@@ -1,4 +1,5 @@
 #include "Benchmark.h"
+#include <vector>
 
 
 unsigned long mix(unsigned long a, unsigned long b, unsigned long c)
@@ -34,13 +35,17 @@ std::unordered_map<std::string, std::string> runExperiment_6(const po::variables
         // meta data
         {"Example-ID",                                                                        ""},
         {"Num-Agents",                                                 std::to_string(dummy_var)},
+        {"Num-Delays",                                                 std::to_string(dummy_var)},
         // initial solution data
         {"initial-EECBS-runtime",                                      std::to_string(dummy_var)},
         {"initial-EECBS-soc",                                          std::to_string(dummy_var)},
         /* replanning on OG */
-        {"replan-LNS-SIPP-OG-runtime",                                 std::to_string(dummy_var)},
-        {"replan-LNS-SIPP-OG-soc",                                     std::to_string(dummy_var)},
-        {"replan-LNS-SIPP-OG-added-length",                            std::to_string(dummy_var)},
+        {"replan-LNS-SIPP-OG-first-runtime",                           std::to_string(dummy_var)},
+        {"replan-LNS-SIPP-OG-first-soc",                               std::to_string(dummy_var)},
+        {"replan-LNS-SIPP-OG-first-added-length",                      std::to_string(dummy_var)},
+        {"replan-LNS-SIPP-OG-best-runtime",                            std::to_string(dummy_var)},
+        {"replan-LNS-SIPP-OG-best-soc",                                std::to_string(dummy_var)},
+        {"replan-LNS-SIPP-OG-best-added-length",                       std::to_string(dummy_var)},
         {"replan-CBS-OG-runtime",                                      std::to_string(dummy_var)},
         {"replan-CBS-OG-soc",                                          std::to_string(dummy_var)},
         {"replan-CBS-OG-added-length",                                 std::to_string(dummy_var)},
@@ -54,9 +59,12 @@ std::unordered_map<std::string, std::string> runExperiment_6(const po::variables
         {"replan-EECBS-OG-best-soc",                                   std::to_string(dummy_var)},      
         {"replan-EECBS-OG-best-added-length",                          std::to_string(dummy_var)},
         /* replanning on CG */
-        {"replan-LNS-SIPP-CG-runtime",                                 std::to_string(dummy_var)},
-        {"replan-LNS-SIPP-CG-soc",                                     std::to_string(dummy_var)},
-        {"replan-LNS-SIPP-CG-delays",                                  std::to_string(dummy_var)},
+        {"replan-LNS-SIPP-CG-first-runtime",                           std::to_string(dummy_var)},
+        {"replan-LNS-SIPP-CG-first-soc",                               std::to_string(dummy_var)},
+        {"replan-LNS-SIPP-CG-first-added-length",                      std::to_string(dummy_var)},
+        {"replan-LNS-SIPP-CG-best-runtime",                            std::to_string(dummy_var)},
+        {"replan-LNS-SIPP-CG-best-soc",                                std::to_string(dummy_var)},
+        {"replan-LNS-SIPP-CG-best-added-length",                       std::to_string(dummy_var)},
         {"replan-CBS-CG-runtime",                                      std::to_string(dummy_var)},
         {"replan-CBS-CG-soc",                                          std::to_string(dummy_var)},
         {"replan-CBS-CG-delays",                                       std::to_string(dummy_var)},
@@ -70,9 +78,12 @@ std::unordered_map<std::string, std::string> runExperiment_6(const po::variables
         {"replan-EECBS-CG-best-soc",                                   std::to_string(dummy_var)},
         {"replan-EECBS-CG-best-delays",                                std::to_string(dummy_var)},
         /* replanning on ICG */
-        {"replan-LNS-SIPP-ICG-runtime",                                std::to_string(dummy_var)},
-        {"replan-LNS-SIPP-ICG-soc",                                    std::to_string(dummy_var)},
-        {"replan-LNS-SIPP-ICG-dealys",                                 std::to_string(dummy_var)},
+        {"replan-LNS-SIPP-CG-first-runtime",                           std::to_string(dummy_var)},
+        {"replan-LNS-SIPP-CG-first-soc",                               std::to_string(dummy_var)},
+        {"replan-LNS-SIPP-CG-first-added-length",                      std::to_string(dummy_var)},
+        {"replan-LNS-SIPP-CG-best-runtime",                            std::to_string(dummy_var)},
+        {"replan-LNS-SIPP-CG-best-soc",                                std::to_string(dummy_var)},
+        {"replan-LNS-SIPP-CG-best-added-length",                       std::to_string(dummy_var)},
         {"replan-CBS-ICG-runtime",                                     std::to_string(dummy_var)},
         {"replan-CBS-ICG-soc",                                         std::to_string(dummy_var)},
         {"replan-CBS-ICG-delays",                                      std::to_string(dummy_var)},
@@ -87,7 +98,7 @@ std::unordered_map<std::string, std::string> runExperiment_6(const po::variables
         {"replan-EECBS-ICG-best-delays",                               std::to_string(dummy_var)}
     };
 
-    // initialize statistics stucture
+    // initialize statistics structure
     PlannerData dataResults;
 
     // calculate initial solution with EECBS
@@ -96,11 +107,13 @@ std::unordered_map<std::string, std::string> runExperiment_6(const po::variables
     // dataResults.initial_plan.clear();
     calcInitialSolution_EECBS(vm, results, dataResults);
 
-    // if initial plan was successful, then continue with replanning
+    // if initial plan was successful, then continue with re-planning
     if (results["Example-ID"] != "")
     {
         /* initialize the new constrained graph instance and update old instance */
+        results["Num-Delays"] = std::to_string(vm["numDelays"].as<int>());
         DelayInstance* delay_instance = calcDelay(vm, results, dataResults);
+
         dataResults.original_instance->start_locations = delay_instance->start_locations;
         for (auto &L: dataResults.original_instance->start_locations) {
             L.index = -1; 
@@ -109,40 +122,50 @@ std::unordered_map<std::string, std::string> runExperiment_6(const po::variables
         dataResults.original_instance->originalPlan = delay_instance->originalPlan;
         dataResults.original_instance->postDelayPlan = delay_instance->postDelayPlan;
         
-        // /* Replan on Original Graph */
+        /* Replan on Original Graph */
         calcReplan_CBS_OG(dataResults.original_instance, vm, results, dataResults);
         results["replan-CBS-OG-added-length"] = std::to_string(stoi(results["replan-CBS-OG-soc"]) - (stoi(results["initial-EECBS-soc"]) + 1));
-        // calcReplan_LNS_SIPP_OG(dataResults.original_instance, vm, results, dataResults);
-        // results["replan-LNS-SIPP-OG-added-length"] = std::to_string(stoi(results["replan-LNS-SIPP-OG-soc"]) - (stoi(results["initial-EECBS-soc"]) + 1));
+
+        calcReplan_LNS_SIPP_OG(dataResults.original_instance, vm, results, dataResults);
+        results["replan-LNS-SIPP-OG-first-added-length"] = std::to_string(stoi(results["replan-LNS-SIPP-OG-first-soc"]) - (stoi(results["initial-EECBS-soc"]) + 1));
+        results["replan-LNS-SIPP-OG-best-added-length"] = std::to_string(stoi(results["replan-LNS-SIPP-OG-best-soc"]) - (stoi(results["initial-EECBS-soc"]) + 1));
+        
         calcReplan_EECBS_OG(dataResults.original_instance, vm, results, dataResults);
         results["replan-EECBS-OG-first-added-length"] = std::to_string(stoi(results["replan-EECBS-OG-first-soc"]) - (stoi(results["initial-EECBS-soc"]) + 1));
         if (stoi(results["replan-EECBS-OG-BBC-soc"]) > 0)
             results["replan-EECBS-OG-BBC-added-length"] = std::to_string(stoi(results["replan-EECBS-OG-BBC-soc"]) - (stoi(results["initial-EECBS-soc"]) + 1));
         results["replan-EECBS-OG-best-added-length"] = std::to_string(stoi(results["replan-EECBS-OG-best-soc"]) - (stoi(results["initial-EECBS-soc"]) + 1));
+        
         /* Replan on Constrained Graph */
         calcReplan_CBS_CG(delay_instance, vm, results, dataResults);
         results["replan-CBS-CG-delays"] = std::to_string(stoi(results["replan-CBS-CG-soc"]) - (stoi(results["initial-EECBS-soc"]) + 1));
+
+        calcReplan_LNS_SIPP_CG(delay_instance, vm, results, dataResults);
+        results["replan-LNS-SIPP-CG-first-added-length"] = std::to_string(stoi(results["replan-LNS-SIPP-CG-first-soc"]) - (stoi(results["initial-EECBS-soc"]) + 1));
+        results["replan-LNS-SIPP-CG-best-added-length"] = std::to_string(stoi(results["replan-LNS-SIPP-CG-best-soc"]) - (stoi(results["initial-EECBS-soc"]) + 1));
+        
         calcReplan_EECBS_CG(delay_instance, vm, results, dataResults);
         results["replan-EECBS-CG-first-delays"] = std::to_string(stoi(results["replan-EECBS-CG-first-soc"]) - (stoi(results["initial-EECBS-soc"]) + 1));
         if (stoi(results["replan-EECBS-CG-BBC-soc"]) > 0)
             results["replan-EECBS-CG-BBC-delays"] = std::to_string(stoi(results["replan-EECBS-CG-BBC-soc"]) - (stoi(results["initial-EECBS-soc"]) + 1));
         results["replan-EECBS-CG-best-delays"] = std::to_string(stoi(results["replan-EECBS-CG-best-soc"]) - (stoi(results["initial-EECBS-soc"]) + 1));
-        calcReplan_LNS_SIPP_CG(delay_instance, vm, results, dataResults);
-        results["replan-LNS-SIPP-CG-delays"] = std::to_string(stoi(results["replan-LNS-SIPP-CG-soc"]) - (stoi(results["initial-EECBS-soc"]) + 1));
-
+        
         /* Activate improved constrained graph */
         delay_instance->activateImprovement();
 
         /* Replan on Improved Constrained Graph */
         calcReplan_CBS_ICG(delay_instance, vm, results, dataResults);
         results["replan-CBS-ICG-delays"] = std::to_string(stoi(results["replan-CBS-ICG-soc"]) - (stoi(results["initial-EECBS-soc"]) + 1));
+        
         calcReplan_EECBS_ICG(delay_instance, vm, results, dataResults);
         results["replan-EECBS-ICG-first-delays"] = std::to_string(stoi(results["replan-EECBS-ICG-first-soc"]) - (stoi(results["initial-EECBS-soc"]) + 1));
         if (stoi(results["replan-EECBS-ICG-BBC-soc"]) > 0)
             results["replan-EECBS-ICG-BBC-delays"] = std::to_string(stoi(results["replan-EECBS-ICG-BBC-soc"]) - (stoi(results["initial-EECBS-soc"]) + 1));
         results["replan-EECBS-ICG-best-delays"] = std::to_string(stoi(results["replan-EECBS-ICG-best-soc"]) - (stoi(results["initial-EECBS-soc"]) + 1));
+        
         calcReplan_LNS_SIPP_ICG(delay_instance, vm, results, dataResults);
-        results["replan-LNS-SIPP-ICG-delays"] = std::to_string(stoi(results["replan-LNS-SIPP-ICG-soc"]) - (stoi(results["initial-EECBS-soc"]) + 1));
+        results["replan-LNS-SIPP-ICG-first-added-length"] = std::to_string(stoi(results["replan-LNS-SIPP-ICG-first-soc"]) - (stoi(results["initial-EECBS-soc"]) + 1));
+        results["replan-LNS-SIPP-ICG-best-added-length"] = std::to_string(stoi(results["replan-LNS-SIPP-ICG-best-soc"]) - (stoi(results["initial-EECBS-soc"]) + 1));
     }
     return results;
 }
@@ -802,7 +825,7 @@ DelayInstance* calcDelay(const po::variables_map vm, std::unordered_map<std::str
 {
 	// create delay instance
     DelayInstance* nxtInstance = new DelayInstance(vm["map"].as<string>(), 
-    		vm["agents"].as<string>(), data.initial_plan, vm["agentNum"].as<int>());
+    		vm["agents"].as<string>(), data.initial_plan, vm["agentNum"].as<int>(), vm["numDelays"].as<int>());
 
     // if found a delay, then create new planner instance
     if ((*nxtInstance).foundDelay())
@@ -829,7 +852,8 @@ DelayInstance* calcDelay(const po::variables_map vm, std::unordered_map<std::str
         // Create and open a text file
         ofstream mydelay(string(data.local_path.string()) + "delay.txt");
         // Write to the file
-        mydelay << (*nxtInstance->delay_).first << ' ' << (*nxtInstance->delay_).second;
+        for (int i = 0; i < nxtInstance->num_of_delays_; i++)
+            mydelay << (*nxtInstance->delay_[i]).first << ' ' << (*nxtInstance->delay_[i]).second;
         // Close the file
         mydelay.close();
     }
@@ -841,7 +865,6 @@ void calcReplan_EECBS_OG(Instance* replan_instance, const po::variables_map vm, 
     AnytimeEECBS a_eecbs(replan_instance, vm["cutoffTime"].as<double>(), vm["screen"].as<int>());
     a_eecbs.replanning  = true;
     a_eecbs.run();
-
     
     if (a_eecbs.iteration_stats.empty())
         return;
@@ -858,7 +881,7 @@ void calcReplan_EECBS_OG(Instance* replan_instance, const po::variables_map vm, 
             {
                 results["replan-EECBS-OG-BBC-runtime"] = std::to_string(stat_itr->runtime);
                 int soc = 0;
-                int delay_time = replan_instance->delay_->second;
+                int delay_time = replan_instance->delay_[0]->second;
                 std::vector<Path> new_paths = stat_itr->paths;
                 std::vector<Path> old_paths = replan_instance->postDelayPlan;
                 for (int idx = 0; idx != new_paths.size(); idx++) {
@@ -885,7 +908,7 @@ void calcReplan_EECBS_OG(Instance* replan_instance, const po::variables_map vm, 
     {
         // save SOC
         int soc_first = 0;
-        int delay_time = replan_instance->delay_->second;
+        int delay_time = replan_instance->delay_[0]->second;
         std::vector<Path> new_paths = a_eecbs.iteration_stats.front().paths;
         std::vector<Path> old_paths = replan_instance->postDelayPlan;
         for (int idx = 0; idx != new_paths.size(); idx++) {
@@ -944,7 +967,7 @@ void calcReplan_EECBS_CG(DelayInstance* delay_instance, const po::variables_map 
             {
                 results["replan-EECBS-CG-BBC-runtime"] = std::to_string(stat_itr->runtime);
                 int soc = 0;
-                int delay_time = delay_instance->delay_->second;
+                int delay_time = delay_instance->delay_[0]->second;
                 std::vector<Path> new_paths = stat_itr->paths;
                 std::vector<Path> old_paths = delay_instance->postDelayPlan;
                 for (int idx = 0; idx != new_paths.size(); idx++) {
@@ -971,7 +994,7 @@ void calcReplan_EECBS_CG(DelayInstance* delay_instance, const po::variables_map 
     {
         // save SOC
         int soc_first = 0;
-        int delay_time = delay_instance->delay_->second;
+        int delay_time = delay_instance->delay_[0]->second;
         std::vector<Path> new_paths = a_eecbs.iteration_stats.front().paths;
         std::vector<Path> old_paths = delay_instance->postDelayPlan;
         for (int idx = 0; idx != new_paths.size(); idx++) {
@@ -1027,7 +1050,7 @@ void calcReplan_EECBS_ICG(DelayInstance* delay_instance, const po::variables_map
             {
                 results["replan-EECBS-ICG-BBC-runtime"] = std::to_string(stat_itr->runtime);
                 int soc = 0;
-                int delay_time = delay_instance->delay_->second;
+                int delay_time = delay_instance->delay_[0]->second;
                 std::vector<Path> new_paths = stat_itr->paths;
                 std::vector<Path> old_paths = delay_instance->postDelayPlan;
                 for (int idx = 0; idx != new_paths.size(); idx++) {
@@ -1054,7 +1077,7 @@ void calcReplan_EECBS_ICG(DelayInstance* delay_instance, const po::variables_map
     {
         // save SOC
         int soc_first = 0;
-        int delay_time = delay_instance->delay_->second;
+        int delay_time = delay_instance->delay_[0]->second;
         std::vector<Path> new_paths = a_eecbs.iteration_stats.front().paths;
         std::vector<Path> old_paths = delay_instance->postDelayPlan;
         for (int idx = 0; idx != new_paths.size(); idx++) {
@@ -1100,39 +1123,100 @@ void calcReplan_LNS_SIPP_OG(Instance* replan_instance, const po::variables_map v
                 vm["maxIterations"].as<int>(),
                 vm["initLNS"].as<bool>(),
                 vm["initDestoryStrategy"].as<string>(),
-                true,
+                vm["sipp"].as<bool>(),
                 vm["screen"].as<int>(), data.pipp_options);
 
 	// run LNS
-	bool succ = lns.run();
+	lns.run();
 
-	// save computation time
-	results["replan-LNS-SIPP-OG-runtime"] = std::to_string(lns.runtime);
+    if (lns.iteration_stats.empty())
+        return;
+    // save computation time
+    results["replan-LNS-SIPP-OG-first-runtime"] = std::to_string(lns.iteration_stats.front().runtime);
+    results["replan-LNS-SIPP-OG-best-runtime"] = std::to_string(lns.iteration_stats.back().runtime);
 
-	if (succ)
-    {
-    	// make sure solution is correct
-        lns.validateSolution();
-        // save SOC
-        int soc = 0;
-        int delay_time = replan_instance->delay_->second;
-        std::vector<Path> old_paths = replan_instance->postDelayPlan;
-        int idx = 0; 
-        for (auto &a: lns.agents) {
-            auto olp_path = old_paths[idx];
-            if (a.path.size() == 1)
-                soc += olp_path.size() - 1;
-            else
-                soc += delay_time + a.path.size();
-            idx++;
-        }
-        int t = stoi(results["initial-EECBS-soc"]);
-        if (soc == t) {
-            std::cout << "ERROR!" << std::endl;
-            exit(-1); // some kind of annoying bug soc should be >= t + 1. Just remove this example
-        }
-        results["replan-LNS-SIPP-OG-soc"] = std::to_string(soc);
+    lns.validateSolution(); // exits out of program if not valid
+
+    // save SOC
+    int soc_first = 0;
+    int delay_time = replan_instance->delay_[0]->second;
+    std::vector<Path> new_paths = lns.iteration_stats.front().paths;
+    if (new_paths.empty()) {
+        cout << "HERE" << endl;
+        exit(1);
     }
+    std::vector<Path> old_paths = replan_instance->postDelayPlan;
+    for (int idx = 0; idx != new_paths.size(); idx++) {
+        auto olp_path = old_paths[idx];
+        auto new_path = new_paths[idx];
+        if (new_path.size() == 1)
+            soc_first += olp_path.size() - 1;
+        else
+            soc_first += delay_time + new_path.size();
+    }
+    int t = stoi(results["initial-EECBS-soc"]);
+    if (soc_first == t) {
+        std::cout << "ERROR!" << std::endl;
+        exit(-1); // some kind of annoying bug soc should be >= t + 1. Just remove this example
+    }
+    results["replan-LNS-SIPP-OG-first-soc"] = std::to_string(soc_first);
+        
+    int soc_best = 0;
+    new_paths = lns.iteration_stats.back().paths;
+    for (int idx = 0; idx != new_paths.size(); idx++) {
+        auto olp_path = old_paths[idx];
+        auto new_path = new_paths[idx];
+        if (new_path.size() == 1)
+            soc_best += olp_path.size() - 1;
+        else
+            soc_best += delay_time + new_path.size();
+    }
+    if (soc_best == t) {
+        std::cout << "ERROR!" << std::endl;
+        exit(-1); // some kind of annoying bug soc should be >= t + 1. Just remove this example
+    }
+    results["replan-LNS-SIPP-OG-best-soc"] = std::to_string(soc_best);
+
+    // cout << lns.iteration_stats.front().runtime << endl;
+    // cout << lns.iteration_stats.front().sum_of_costs << endl;
+    // cout << lns.iteration_stats.front().num_of_colliding_pairs << endl;
+
+    // cout << lns.iteration_stats.back().runtime << endl;
+    // cout << lns.iteration_stats.back().sum_of_costs << endl;
+    // cout << lns.iteration_stats.front().num_of_colliding_pairs << endl;
+    // exit(1);
+
+	// // save computation time
+	// results["replan-LNS-SIPP-OG-runtime"] = std::to_string(lns.runtime);
+
+	// if (succ)
+    // {
+
+    //     cout << lns.iteration_stats.size() << endl;
+    //     exit(1);
+
+    // 	// make sure solution is correct
+    //     lns.validateSolution();
+    //     // save SOC
+    //     int soc = 0;
+    //     int delay_time = replan_instance->delay_[0]->second;
+    //     std::vector<Path> old_paths = replan_instance->postDelayPlan;
+    //     int idx = 0; 
+    //     for (auto &a: lns.agents) {
+    //         auto olp_path = old_paths[idx];
+    //         if (a.path.size() == 1)
+    //             soc += olp_path.size() - 1;
+    //         else
+    //             soc += delay_time + a.path.size();
+    //         idx++;
+    //     }
+    //     int t = stoi(results["initial-EECBS-soc"]);
+    //     if (soc == t) {
+    //         std::cout << "ERROR!" << std::endl;
+    //         exit(-1); // some kind of annoying bug soc should be >= t + 1. Just remove this example
+    //     }
+    //     results["replan-LNS-SIPP-OG-soc"] = std::to_string(soc);
+    // }
 }
 
 void calcReplan_LNS_SIPP_CG(DelayInstance* delay_instance, const po::variables_map vm, std::unordered_map<std::string, std::string> &results, PlannerData &data)
@@ -1147,57 +1231,56 @@ void calcReplan_LNS_SIPP_CG(DelayInstance* delay_instance, const po::variables_m
                 vm["maxIterations"].as<int>(),
                 vm["initLNS"].as<bool>(),
                 vm["initDestoryStrategy"].as<string>(),
-                true,
+                vm["sipp"].as<bool>(),
                 vm["screen"].as<int>(), data.pipp_options);
 
-	// run LNS
-    bool succ = lns.run();
 
+    // run LNS
+    lns.run();
+
+    if (lns.iteration_stats.empty())
+        return;
     // save computation time
-    results["replan-LNS-SIPP-CG-runtime"] = std::to_string(lns.runtime);
+    results["replan-LNS-SIPP-CG-first-runtime"] = std::to_string(lns.iteration_stats.front().runtime);
+    results["replan-LNS-SIPP-CG-best-runtime"] = std::to_string(lns.iteration_stats.back().runtime);
 
-    if (succ)
-    {
-        // make sure solution is correct
-        lns.validateSolution();
+    lns.validateSolution(); // exits out of program if not valid
 
-        // save file here, if needed
-        // ofstream myfile;
-        // myfile.open (std::string(data.local_path) + "replan-LNS-SIPP-CG.txt");
-        // // int soc = 0; // must compute soc manually for replanning
-        // for (const auto &agent : lns.agents)
-        // {
-        //     myfile << "Agent: " << agent.id << std::endl;
-        //     for (int i = 0; i < agent.path.size(); i++) // const auto entry : agent.path
-        //     {
-        //         auto entry = agent.path[i];
-        //         myfile << i << " " <<
-        //         delay_instance->getRowCoordinate(entry.Loc.location) << " " << 
-        //         delay_instance->getColCoordinate(entry.Loc.location) << std::endl;
-        //     }
-        // }
-        // myfile.close();
-        // save SOC
-        // save SOC
-        int soc = 0;
-        int delay_time = delay_instance->delay_->second;
-        std::vector<Path> old_paths = delay_instance->postDelayPlan;
-        int idx = 0; 
-        for (auto &a: lns.agents) {
-            auto olp_path = old_paths[idx];
-            if (a.path.size() == 1)
-                soc += olp_path.size() - 1;
-            else
-                soc += delay_time + a.path.size();
-            idx++;
-        }
-        int t = stoi(results["initial-EECBS-soc"]);
-        if (soc == t) {
-            std::cout << "ERROR!" << std::endl;
-            exit(-1); // some kind of annoying bug soc should be >= t + 1. Just remove this example
-        }
-        results["replan-LNS-SIPP-CG-soc"] = std::to_string(soc);
+    // save SOC
+    int soc_first = 0;
+    int delay_time = delay_instance->delay_[0]->second;
+    std::vector<Path> new_paths = lns.iteration_stats.front().paths;
+    std::vector<Path> old_paths = delay_instance->postDelayPlan;
+    for (int idx = 0; idx != new_paths.size(); idx++) {
+        auto olp_path = old_paths[idx];
+        auto new_path = new_paths[idx];
+        if (new_path.size() == 1)
+            soc_first += olp_path.size() - 1;
+        else
+            soc_first += delay_time + new_path.size();
     }
+    int t = stoi(results["initial-EECBS-soc"]);
+    if (soc_first == t) {
+        std::cout << "ERROR!" << std::endl;
+        exit(-1); // some kind of annoying bug soc should be >= t + 1. Just remove this example
+    }
+    results["replan-LNS-SIPP-CG-first-soc"] = std::to_string(soc_first);
+        
+    int soc_best = 0;
+    new_paths = lns.iteration_stats.back().paths;
+    for (int idx = 0; idx != new_paths.size(); idx++) {
+        auto olp_path = old_paths[idx];
+        auto new_path = new_paths[idx];
+        if (new_path.size() == 1)
+            soc_best += olp_path.size() - 1;
+        else
+            soc_best += delay_time + new_path.size();
+    }
+    if (soc_best == t) {
+        std::cout << "ERROR!" << std::endl;
+        exit(-1); // some kind of annoying bug soc should be >= t + 1. Just remove this example
+    }
+    results["replan-LNS-SIPP-CG-best-soc"] = std::to_string(soc_best);
 }
 
 void calcReplan_CBS_OG(Instance* replan_instance, const po::variables_map vm, std::unordered_map<std::string, std::string> &results, PlannerData &data)
@@ -1242,7 +1325,7 @@ void calcReplan_CBS_OG(Instance* replan_instance, const po::variables_map vm, st
         // myfile.close();
         // save SOC
         int soc = 0;
-        int delay_time = replan_instance->delay_->second;
+        int delay_time = replan_instance->delay_[0]->second;
         std::vector<Path*> new_paths = cbs.paths;
         std::vector<Path> old_paths = replan_instance->postDelayPlan;
         for (int idx = 0; idx != new_paths.size(); idx++) {
@@ -1308,7 +1391,7 @@ void calcReplan_CBS_CG(DelayInstance* delay_instance, const po::variables_map vm
         // myfile.close();
         // save SOC
         int soc = 0;
-        int delay_time = delay_instance->delay_->second;
+        int delay_time = delay_instance->delay_[0]->second;
         std::vector<Path*> new_paths = cbs.paths;
         std::vector<Path> old_paths = delay_instance->postDelayPlan;
         for (int idx = 0; idx != new_paths.size(); idx++) {
@@ -1340,55 +1423,56 @@ void calcReplan_LNS_SIPP_ICG(DelayInstance* delay_instance, const po::variables_
                 vm["maxIterations"].as<int>(),
                 vm["initLNS"].as<bool>(),
                 vm["initDestoryStrategy"].as<string>(),
-                true,
+                vm["sipp"].as<bool>(),
                 vm["screen"].as<int>(), data.pipp_options);
 
+
     // run LNS
-    bool succ = lns.run();
+    lns.run();
 
+    if (lns.iteration_stats.empty())
+        return;
     // save computation time
-    results["replan-LNS-SIPP-ICG-runtime"] = std::to_string(lns.runtime);
+    results["replan-LNS-SIPP-ICG-first-runtime"] = std::to_string(lns.iteration_stats.front().runtime);
+    results["replan-LNS-SIPP-ICG-best-runtime"] = std::to_string(lns.iteration_stats.back().runtime);
 
-    if (succ)
-    {
-        // make sure solution is correct
-        lns.validateSolution();
+    lns.validateSolution(); // exits out of program if not valid
 
-        // save file here, if needed
-        // ofstream myfile;
-        // myfile.open (std::string(data.local_path) + "replan-LNS-SIPP-ICG.txt");
-        // // int soc = 0; // must compute soc manually for replanning
-        // for (const auto &agent : lns.agents)
-        // {
-        //     myfile << "Agent: " << agent.id << std::endl;
-        //     for (int i = 0; i < agent.path.size(); i++) // const auto entry : agent.path
-        //     {
-        //         auto entry = agent.path[i];
-        //         myfile << i << " " <<
-        //         delay_instance->getRowCoordinate(entry.Loc.location) << " " << 
-        //         delay_instance->getColCoordinate(entry.Loc.location) << std::endl;
-        //     }
-        // }
-        // myfile.close();
-        int soc = 0;
-        int delay_time = delay_instance->delay_->second;
-        std::vector<Path> old_paths = delay_instance->postDelayPlan;
-        int idx = 0; 
-        for (auto &a: lns.agents) {
-            auto olp_path = old_paths[idx];
-            if (a.path.size() == 1)
-                soc += olp_path.size() - 1;
-            else
-                soc += delay_time + a.path.size();
-            idx++;
-        }
-        int t = stoi(results["initial-EECBS-soc"]);
-        if (soc == t) {
-            std::cout << "ERROR!" << std::endl;
-            exit(-1); // some kind of annoying bug soc should be >= t + 1. Just remove this example
-        }
-        results["replan-LNS-SIPP-ICG-soc"] = std::to_string(soc);
+    // save SOC
+    int soc_first = 0;
+    int delay_time = delay_instance->delay_[0]->second;
+    std::vector<Path> new_paths = lns.iteration_stats.front().paths;
+    std::vector<Path> old_paths = delay_instance->postDelayPlan;
+    for (int idx = 0; idx != new_paths.size(); idx++) {
+        auto olp_path = old_paths[idx];
+        auto new_path = new_paths[idx];
+        if (new_path.size() == 1)
+            soc_first += olp_path.size() - 1;
+        else
+            soc_first += delay_time + new_path.size();
     }
+    int t = stoi(results["initial-EECBS-soc"]);
+    if (soc_first == t) {
+        std::cout << "ERROR!" << std::endl;
+        exit(-1); // some kind of annoying bug soc should be >= t + 1. Just remove this example
+    }
+    results["replan-LNS-SIPP-ICG-first-soc"] = std::to_string(soc_first);
+        
+    int soc_best = 0;
+    new_paths = lns.iteration_stats.back().paths;
+    for (int idx = 0; idx != new_paths.size(); idx++) {
+        auto olp_path = old_paths[idx];
+        auto new_path = new_paths[idx];
+        if (new_path.size() == 1)
+            soc_best += olp_path.size() - 1;
+        else
+            soc_best += delay_time + new_path.size();
+    }
+    if (soc_best == t) {
+        std::cout << "ERROR!" << std::endl;
+        exit(-1); // some kind of annoying bug soc should be >= t + 1. Just remove this example
+    }
+    results["replan-LNS-SIPP-ICG-best-soc"] = std::to_string(soc_best);
 }
 
 void calcReplan_CBS_ICG(DelayInstance* delay_instance, const po::variables_map vm, std::unordered_map<std::string, std::string> &results, PlannerData &data)
@@ -1434,7 +1518,7 @@ void calcReplan_CBS_ICG(DelayInstance* delay_instance, const po::variables_map v
         // myfile.close();
         // save SOC
         int soc = 0;
-        int delay_time = delay_instance->delay_->second;
+        int delay_time = delay_instance->delay_[0]->second;
         std::vector<Path*> new_paths = cbs.paths;
         std::vector<Path> old_paths = delay_instance->postDelayPlan;
         for (int idx = 0; idx != new_paths.size(); idx++) {

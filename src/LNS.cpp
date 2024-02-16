@@ -87,9 +87,12 @@ bool LNS::run()
             }
         }
     }
-
-    iteration_stats.emplace_back(neighbor.agents.size(),
-                                 initial_sum_of_costs, initial_solution_runtime, init_algo_name);
+    vector<Path> paths;
+    for (int i = 0; i < neighbor.agents.size(); i++) {
+        paths.push_back(agents[i].path);
+    }
+    iteration_stats.emplace_back(neighbor.agents.size(), initial_sum_of_costs,
+                                         initial_solution_runtime, init_algo_name, 0, 0, paths);
     runtime = initial_solution_runtime;
     if (succ)
     {
@@ -150,7 +153,6 @@ bool LNS::run()
             path_table.deletePath(neighbor.agents[i], agents[neighbor.agents[i]].path);
             neighbor.old_sum_of_costs += agents[neighbor.agents[i]].path.size() - 1;
         }
-        std::cout << "replan_algo_name == " << replan_algo_name << std::endl;
         if (replan_algo_name == "EECBS")
             succ = runEECBS();
         else if (replan_algo_name == "CBS")
@@ -180,7 +182,12 @@ bool LNS::run()
                  << "group size = " << neighbor.agents.size() << ", "
                  << "solution cost = " << sum_of_costs << ", "
                  << "remaining time = " << time_limit - runtime << endl;
-        iteration_stats.emplace_back(neighbor.agents.size(), sum_of_costs, runtime, replan_algo_name);
+        vector<Path> paths;
+        for (int i = 0; i < agents.size(); i++) {
+            paths.push_back(agents[i].path);
+        }
+        iteration_stats.emplace_back(neighbor.agents.size(), sum_of_costs,
+                                         runtime, replan_algo_name, 0, 0, paths);
     }
 
 
@@ -857,7 +864,7 @@ void LNS::writeResultToFile(const string & file_name) const
     else
         name += "-" + init_algo_name + ".csv";
     
-    if (!instance->delay_)
+    if (instance->delay_.empty())
     {
         // regular instance -- regular stats
         std::ifstream infile(name);
@@ -960,7 +967,7 @@ void LNS::writeResultToFile(const string & file_name) const
 void LNS::countInducedDelays(std::vector<Path> &old_paths) const
 {
     // first, run sanity checks
-    const int shift = instance->delay_->second + 1;
+    const int shift = instance->delay_[0]->second + 1;
     // now, examine the number of delays
     // note that delays may only be induced iff new path > 1
     std::vector<int> agent_ids{};

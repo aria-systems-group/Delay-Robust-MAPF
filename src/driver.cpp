@@ -30,10 +30,10 @@ int main(int argc, char** argv)
 		("seed", po::value<int>()->default_value(0), "Random seed")
 
         // params for LNS
-        ("initLNS", po::value<bool>()->default_value(true),
+        ("initLNS", po::value<bool>()->default_value(false),
              "use LNS to find initial solutions if the initial sovler fails")
         ("neighborSize", po::value<int>()->default_value(8), "Size of the neighborhood")
-        ("maxIterations", po::value<int>()->default_value(0), "maximum number of iterations")
+        ("maxIterations", po::value<int>()->default_value(INT_MAX), "maximum number of iterations")
         ("initAlgo", po::value<string>()->default_value("PP"),
                 "MAPF algorithm for finding the initial solution (EECBS, PP, PPS, CBS, PIBT, winPIBT)")
         ("replanAlgo", po::value<string>()->default_value("PP"),
@@ -44,6 +44,10 @@ int main(int argc, char** argv)
              "window size for winPIBT")
         ("winPibtSoftmode", po::value<bool>()->default_value(true),
              "winPIBT soft mode")
+
+        // param for number of delays introduced to plan
+        ("numDelays", po::value<int>()->default_value(1),
+             "number of delays introduced to a plan")
 
          // params for initLNS
          ("initDestoryStrategy", po::value<string>()->default_value("Adaptive"),
