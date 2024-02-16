@@ -571,6 +571,10 @@ void LNS::chooseDestroyHeuristicbyALNS()
 
 bool LNS::generateNeighborByIntersection()
 {
+    // cannot use this heuristic on CG/ICG
+    if (!instance->delay_.empty())
+        return false;
+
     if (intersections.empty())
     {
         for (int i = 0; i < (*instance).map_size; i++)
