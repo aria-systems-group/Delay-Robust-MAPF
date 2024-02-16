@@ -1127,7 +1127,7 @@ void calcReplan_LNS_SIPP_OG(Instance* replan_instance, const po::variables_map v
                 vm["screen"].as<int>(), data.pipp_options);
 
 	// run LNS
-	lns.run();
+	bool succ = lns.run();
 
     if (lns.iteration_stats.empty())
         return;
@@ -1135,7 +1135,9 @@ void calcReplan_LNS_SIPP_OG(Instance* replan_instance, const po::variables_map v
     results["replan-LNS-SIPP-OG-first-runtime"] = std::to_string(lns.iteration_stats.front().runtime);
     results["replan-LNS-SIPP-OG-best-runtime"] = std::to_string(lns.iteration_stats.back().runtime);
 
-    lns.validateSolution(); // exits out of program if not valid
+    // lns.validateSolution(); // exits out of program if not valid
+    if (!succ)
+        return;
 
     // save SOC
     int soc_first = 0;
@@ -1236,7 +1238,7 @@ void calcReplan_LNS_SIPP_CG(DelayInstance* delay_instance, const po::variables_m
 
 
     // run LNS
-    lns.run();
+    bool succ = lns.run();
 
     if (lns.iteration_stats.empty())
         return;
@@ -1244,7 +1246,9 @@ void calcReplan_LNS_SIPP_CG(DelayInstance* delay_instance, const po::variables_m
     results["replan-LNS-SIPP-CG-first-runtime"] = std::to_string(lns.iteration_stats.front().runtime);
     results["replan-LNS-SIPP-CG-best-runtime"] = std::to_string(lns.iteration_stats.back().runtime);
 
-    lns.validateSolution(); // exits out of program if not valid
+    // lns.validateSolution(); // exits out of program if not valid
+    if (!succ)
+        return;
 
     // save SOC
     int soc_first = 0;
@@ -1428,7 +1432,7 @@ void calcReplan_LNS_SIPP_ICG(DelayInstance* delay_instance, const po::variables_
 
 
     // run LNS
-    lns.run();
+    bool succ = lns.run();
 
     if (lns.iteration_stats.empty())
         return;
@@ -1436,7 +1440,9 @@ void calcReplan_LNS_SIPP_ICG(DelayInstance* delay_instance, const po::variables_
     results["replan-LNS-SIPP-ICG-first-runtime"] = std::to_string(lns.iteration_stats.front().runtime);
     results["replan-LNS-SIPP-ICG-best-runtime"] = std::to_string(lns.iteration_stats.back().runtime);
 
-    lns.validateSolution(); // exits out of program if not valid
+    // lns.validateSolution(); // exits out of program if not valid
+    if (!succ)
+        return;
 
     // save SOC
     int soc_first = 0;
